@@ -1,0 +1,6 @@
+{
+  "name": "NIOTRON",
+  "description": "NIOTRON Textile Institute Management System with Master Admin controls, 4 Academic Departments, QR Attendance Gate, AI Assistant Widget, Guardian Portal, Immutable Audit Logs, and Digital Notice Board.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
