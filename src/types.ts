@@ -366,3 +366,13 @@ export interface SafetyReportComplaint {
   adminNotes?: string;
 }
 
+export interface HostelRoom {
+  roomNumber: string;
+  capacity: number;
+  occupied: number;
+}
+
+export interface HostelFloor {
+  floorNumber: number;
+  rooms: HostelRoom[];
+}
