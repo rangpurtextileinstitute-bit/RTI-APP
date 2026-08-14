@@ -16,6 +16,7 @@ import {
   Radio
 } from 'lucide-react';
 import { SafetyReportComplaint } from '../types';
+import { safeLocalStorageSet } from '../lib/storage';
 
 interface EmergencyHelplineWidgetProps {
   isMasterAdmin: boolean;
@@ -65,11 +66,7 @@ export const EmergencyHelplineWidget: React.FC<EmergencyHelplineWidgetProps> = (
   const [submittedToken, setSubmittedToken] = useState<string | null>(null);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(INITIAL_COMPLAINTS_KEY, JSON.stringify(complaints));
-    } catch {
-      // ignore
-    }
+    safeLocalStorageSet(INITIAL_COMPLAINTS_KEY, complaints);
   }, [complaints]);
 
   const handleSubmitReport = (e: React.FormEvent) => {

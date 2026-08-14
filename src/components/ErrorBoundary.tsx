@@ -24,11 +24,15 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
-          <div className="max-w-md text-center p-8 bg-white rounded-2xl shadow-xl">
-            <h1 className="text-2xl font-bold text-slate-800 mb-4">Something went wrong.</h1>
-            <p className="text-slate-600">We're experiencing technical difficulties. Please refresh the page or try again later.</p>
-          </div>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-slate-100 p-6 text-center">
+          <h1 className="text-4xl font-black mb-4">Something went wrong</h1>
+          <p className="text-slate-400 mb-6">Our system encountered an unexpected error. Please refresh the page or contact support.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-bold transition"
+          >
+            Refresh Page
+          </button>
         </div>
       );
     }

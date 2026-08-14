@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 import { db } from './lib/firebase';
+import { safeLocalStorageGet, safeLocalStorageSet, safeStringify } from './lib/storage';
 import { Sparkles, CheckCircle2, X, Building2, ShieldCheck } from 'lucide-react';
 import { Header } from './components/Header';
 import { MasterAdminBanner } from './components/MasterAdminBanner';
@@ -81,24 +82,21 @@ import {
 const DATA_VERSION_KEY = 'rti_clean_slate_zero_records_v10';
 if (typeof window !== 'undefined' && localStorage.getItem('rti_data_version') !== DATA_VERSION_KEY) {
   localStorage.clear();
-  localStorage.setItem('rti_data_version', DATA_VERSION_KEY);
+  safeLocalStorageSet('rti_data_version', DATA_VERSION_KEY);
 }
 
 export default function App() {
   // Master Admin switch state (Default: false for unauthenticated visitors)
-  const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(() => {
-    const saved = localStorage.getItem('rti_master_admin');
-    return saved ? JSON.parse(saved) : false;
-  });
+  const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(() => safeLocalStorageGet('rti_master_admin', false));
 
   // Designated Single Main Admin Email State (Dynamic - defined by user during setup)
   const [designatedAdminEmail, setDesignatedAdminEmail] = useState<string>(() => {
-    return localStorage.getItem('rti_designated_admin_email') || '';
+    return (typeof window !== 'undefined' && localStorage.getItem('rti_designated_admin_email')) || '';
   });
 
   // Admin Security PIN State (Dynamic - defined by user during setup)
   const [adminSecurityPin, setAdminSecurityPin] = useState<string>(() => {
-    return localStorage.getItem('rti_admin_pin') || '';
+    return (typeof window !== 'undefined' && localStorage.getItem('rti_admin_pin')) || '';
   });
 
   // Current Logged-in User State (Default: Unauthenticated Guest Visitor)
@@ -107,26 +105,16 @@ export default function App() {
     name: string;
     role: string;
     isLoggedIn: boolean;
-  }>(() => {
-    const saved = localStorage.getItem('rti_current_user');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed.isLoggedIn === 'boolean') {
-          return parsed;
-        }
-      } catch (e) { /* ignore */ }
-    }
-    return {
-      email: null,
-      name: 'Guest Visitor',
-      role: 'Student',
-      isLoggedIn: false
-    };
-  });
+  }>(() => safeLocalStorageGet('rti_current_user', {
+    email: null,
+    name: 'Guest Visitor',
+    role: 'Student',
+    isLoggedIn: false
+  }));
 
   // Role-Based Access Control (Default: Student)
   const [activeRole, setActiveRole] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'Student';
     const saved = localStorage.getItem('rti_active_role');
     if (saved) return saved;
     const isSavedAdmin = localStorage.getItem('rti_master_admin');
@@ -138,12 +126,13 @@ export default function App() {
 
   // Dark/Light Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    if (typeof window === 'undefined') return 'dark';
     const saved = localStorage.getItem('rti_theme');
     return (saved === 'dark' || saved === 'light') ? saved : 'dark';
   });
 
   useEffect(() => {
-    localStorage.setItem('rti_theme', theme);
+    safeLocalStorageSet('rti_theme', theme);
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -157,20 +146,11 @@ export default function App() {
 
 
   // State with LocalStorage Persistence
-  const [batches, setBatches] = useState<WetProcessingBatch[]>(() => {
-    const saved = localStorage.getItem('rti_batches');
-    return saved ? JSON.parse(saved) : INITIAL_WET_PROCESSING_BATCHES;
-  });
+  const [batches, setBatches] = useState<WetProcessingBatch[]>(() => safeLocalStorageGet('rti_batches', INITIAL_WET_PROCESSING_BATCHES));
 
-  const [labDips, setLabDips] = useState<LabDipRecord[]>(() => {
-    const saved = localStorage.getItem('rti_lab_dips');
-    return saved ? JSON.parse(saved) : INITIAL_LAB_DIPS;
-  });
+  const [labDips, setLabDips] = useState<LabDipRecord[]>(() => safeLocalStorageGet('rti_lab_dips', INITIAL_LAB_DIPS));
 
-  const [yarnRecords, setYarnRecords] = useState<YarnQualityRecord[]>(() => {
-    const saved = localStorage.getItem('rti_yarn_records');
-    return saved ? JSON.parse(saved) : INITIAL_YARN_RECORDS;
-  });
+  const [yarnRecords, setYarnRecords] = useState<YarnQualityRecord[]>(() => safeLocalStorageGet('rti_yarn_records', INITIAL_YARN_RECORDS));
 
   const [fiberBales, setFiberBales] = useState<FiberBaleInspection[]>(() => {
     const saved = localStorage.getItem('rti_fiber_bales');
@@ -275,52 +255,52 @@ export default function App() {
 
   // Sync LocalStorage
   useEffect(() => {
-    localStorage.setItem('rti_master_admin', JSON.stringify(isMasterAdmin));
+    safeLocalStorageSet('rti_master_admin', isMasterAdmin);
   }, [isMasterAdmin]);
 
   useEffect(() => {
-    localStorage.setItem('rti_current_user', JSON.stringify(currentUser));
+    safeLocalStorageSet('rti_current_user', currentUser);
   }, [currentUser]);
 
   useEffect(() => {
-    localStorage.setItem('rti_admin_pin', adminSecurityPin);
+    safeLocalStorageSet('rti_admin_pin', adminSecurityPin);
   }, [adminSecurityPin]);
 
   useEffect(() => {
-    localStorage.setItem('rti_active_role', activeRole);
+    safeLocalStorageSet('rti_active_role', activeRole);
   }, [activeRole]);
 
 
   useEffect(() => {
-    localStorage.setItem('rti_lab_dips', JSON.stringify(labDips));
+    safeLocalStorageSet('rti_lab_dips', labDips);
   }, [labDips]);
 
   useEffect(() => {
-    localStorage.setItem('rti_yarn_records', JSON.stringify(yarnRecords));
+    safeLocalStorageSet('rti_yarn_records', yarnRecords);
   }, [yarnRecords]);
 
   useEffect(() => {
-    localStorage.setItem('rti_fiber_bales', JSON.stringify(fiberBales));
+    safeLocalStorageSet('rti_fiber_bales', fiberBales);
   }, [fiberBales]);
 
   useEffect(() => {
-    localStorage.setItem('rti_loom_records', JSON.stringify(loomRecords));
+    safeLocalStorageSet('rti_loom_records', loomRecords);
   }, [loomRecords]);
 
   useEffect(() => {
-    localStorage.setItem('rti_fabric_inspections', JSON.stringify(fabricInspections));
+    safeLocalStorageSet('rti_fabric_inspections', fabricInspections);
   }, [fabricInspections]);
 
   useEffect(() => {
-    localStorage.setItem('rti_sewing_records', JSON.stringify(sewingRecords));
+    safeLocalStorageSet('rti_sewing_records', sewingRecords);
   }, [sewingRecords]);
 
   useEffect(() => {
-    localStorage.setItem('rti_tech_packs', JSON.stringify(techPacks));
+    safeLocalStorageSet('rti_tech_packs', techPacks);
   }, [techPacks]);
 
   useEffect(() => {
-    localStorage.setItem('rti_gate_logs', JSON.stringify(gateLogs));
+    safeLocalStorageSet('rti_gate_logs', gateLogs);
   }, [gateLogs]);
 
 
@@ -366,60 +346,60 @@ export default function App() {
 
 
   useEffect(() => {
-    localStorage.setItem('rti_batches', JSON.stringify(batches));
+    safeLocalStorageSet('rti_batches', batches);
   }, [batches]);
 
   useEffect(() => {
-    localStorage.setItem('rti_members', JSON.stringify(registeredMembers));
+    safeLocalStorageSet('rti_members', registeredMembers);
   }, [registeredMembers]);
 
   useEffect(() => {
-    localStorage.setItem('rti_notices', JSON.stringify(notices));
+    safeLocalStorageSet('rti_notices', notices);
   }, [notices]);
 
   useEffect(() => {
-    localStorage.setItem('rti_audit_logs', JSON.stringify(auditLogs));
+    safeLocalStorageSet('rti_audit_logs', auditLogs);
   }, [auditLogs]);
 
 
   useEffect(() => {
-    localStorage.setItem('rti_events', JSON.stringify(academicEvents));
+    safeLocalStorageSet('rti_events', academicEvents);
   }, [academicEvents]);
 
   useEffect(() => {
-    localStorage.setItem('rti_student_fees', JSON.stringify(studentFees));
+    safeLocalStorageSet('rti_student_fees', studentFees);
   }, [studentFees]);
 
   useEffect(() => {
-    localStorage.setItem('rti_student_grades', JSON.stringify(studentGrades));
+    safeLocalStorageSet('rti_student_grades', studentGrades);
   }, [studentGrades]);
 
   useEffect(() => {
-    localStorage.setItem('rti_guardian_alerts', JSON.stringify(guardianAlerts));
+    safeLocalStorageSet('rti_guardian_alerts', guardianAlerts);
   }, [guardianAlerts]);
 
   useEffect(() => {
-    localStorage.setItem('rti_alumni', JSON.stringify(alumniList));
+    safeLocalStorageSet('rti_alumni', alumniList);
   }, [alumniList]);
 
   useEffect(() => {
-    localStorage.setItem('rti_red_crescent', JSON.stringify(redCrescentMembers));
+    safeLocalStorageSet('rti_red_crescent', redCrescentMembers);
   }, [redCrescentMembers]);
 
   useEffect(() => {
-    localStorage.setItem('rti_magazines', JSON.stringify(magazines));
+    safeLocalStorageSet('rti_magazines', magazines);
   }, [magazines]);
 
   useEffect(() => {
-    localStorage.setItem('rti_designated_admin_email', designatedAdminEmail);
+    safeLocalStorageSet('rti_designated_admin_email', designatedAdminEmail);
   }, [designatedAdminEmail]);
 
   useEffect(() => {
-    localStorage.setItem('rti_admin_pin', adminSecurityPin);
+    safeLocalStorageSet('rti_admin_pin', adminSecurityPin);
   }, [adminSecurityPin]);
 
   useEffect(() => {
-    localStorage.setItem('rti_current_user', JSON.stringify(currentUser));
+    safeLocalStorageSet('rti_current_user', currentUser);
   }, [currentUser]);
 
   // Security Enforcement Guard: Ensure isMasterAdmin can NEVER be true if user is not authenticated as Main Admin
@@ -445,8 +425,8 @@ export default function App() {
 
     setDesignatedAdminEmail(cleanEmail);
     setAdminSecurityPin(cleanPin);
-    localStorage.setItem('rti_designated_admin_email', cleanEmail);
-    localStorage.setItem('rti_admin_pin', cleanPin);
+    safeLocalStorageSet('rti_designated_admin_email', cleanEmail);
+    safeLocalStorageSet('rti_admin_pin', cleanPin);
 
     setIsMasterAdmin(true);
     setActiveRole('Super Admin');
@@ -458,9 +438,9 @@ export default function App() {
     };
     setCurrentUser(adminUser);
 
-    localStorage.setItem('rti_master_admin', JSON.stringify(true));
-    localStorage.setItem('rti_current_user', JSON.stringify(adminUser));
-    localStorage.setItem('rti_active_role', 'Super Admin');
+    safeLocalStorageSet('rti_master_admin', true);
+    safeLocalStorageSet('rti_current_user', adminUser);
+    safeLocalStorageSet('rti_active_role', 'Super Admin');
 
     addAuditEntry('Main Admin Credentials Set', `Configured Main Admin account for ${cleanEmail}`, 'Security Administration');
     return { success: true, message: `✅ Main Admin configured! Logged in as ${cleanEmail}.` };
@@ -469,14 +449,14 @@ export default function App() {
   const handleUpdateAdminEmail = (newEmail: string) => {
     const clean = newEmail.trim().toLowerCase();
     setDesignatedAdminEmail(clean);
-    localStorage.setItem('rti_designated_admin_email', clean);
+    safeLocalStorageSet('rti_designated_admin_email', clean);
     addAuditEntry('Designated Main Admin Changed', `Updated Main Admin Gmail address to ${clean}`, 'Security Administration');
   };
 
   const handleUpdateAdminPin = (newPin: string) => {
     if (newPin.trim()) {
       setAdminSecurityPin(newPin.trim());
-      localStorage.setItem('rti_admin_pin', newPin.trim());
+      safeLocalStorageSet('rti_admin_pin', newPin.trim());
       addAuditEntry('Admin Security PIN Updated', 'Master Admin updated security verification PIN.', 'Security Administration');
     }
   };
@@ -519,9 +499,9 @@ export default function App() {
       setCurrentUser(adminUser);
 
       // Save session immediately to localStorage
-      localStorage.setItem('rti_master_admin', JSON.stringify(true));
-      localStorage.setItem('rti_current_user', JSON.stringify(adminUser));
-      localStorage.setItem('rti_active_role', 'Super Admin');
+      safeLocalStorageSet('rti_master_admin', true);
+      safeLocalStorageSet('rti_current_user', adminUser);
+      safeLocalStorageSet('rti_active_role', 'Super Admin');
 
       addAuditEntry('Admin Login Successful', `${cleanEmail} authenticated as Main Admin.`, 'Security Administration');
       return { success: true, message: `✅ Security verification successful! Logged in as Main Admin.` };
@@ -538,9 +518,9 @@ export default function App() {
       };
       setCurrentUser(studentUser);
 
-      localStorage.setItem('rti_master_admin', JSON.stringify(false));
-      localStorage.setItem('rti_current_user', JSON.stringify(studentUser));
-      localStorage.setItem('rti_active_role', 'Student');
+      safeLocalStorageSet('rti_master_admin', false);
+      safeLocalStorageSet('rti_current_user', studentUser);
+      safeLocalStorageSet('rti_active_role', 'Student');
 
       addAuditEntry('Student Login', `Signed in as student ${cleanEmail}`, 'User Portal');
       return { success: true, message: `Welcome ${userName}! Signed in as Student.` };
@@ -557,9 +537,9 @@ export default function App() {
       isLoggedIn: false
     };
     setCurrentUser(guestUser);
-    localStorage.setItem('rti_master_admin', JSON.stringify(false));
-    localStorage.setItem('rti_current_user', JSON.stringify(guestUser));
-    localStorage.setItem('rti_active_role', 'Student');
+    safeLocalStorageSet('rti_master_admin', false);
+    safeLocalStorageSet('rti_current_user', guestUser);
+    safeLocalStorageSet('rti_active_role', 'Student');
     addAuditEntry('User Logout', 'User logged out. Switched to Guest / Student mode.', 'User Portal');
   };
 
@@ -838,7 +818,7 @@ export default function App() {
       gateLogs,
       registeredMembers
     };
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObject, null, 2));
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(safeStringify(exportObject));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
     downloadAnchor.setAttribute("download", `RTI_Institute_Data_${new Date().toISOString().split('T')[0]}.json`);
