@@ -262,7 +262,12 @@ export default function App() {
 
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showAuditModal, setShowAuditModal] = useState(false);
-  const [showWelcomeToast, setShowWelcomeToast] = useState<boolean>(true);
+  const [showWelcomeToast, setShowWelcomeToast] = useState<boolean>(() => !sessionStorage.getItem('welcome_dismissed'));
+
+  const handleDismissWelcome = () => {
+    sessionStorage.setItem('welcome_dismissed', 'true');
+    setShowWelcomeToast(false);
+  };
 
   // Sync LocalStorage
   useEffect(() => {
@@ -1139,7 +1144,7 @@ export default function App() {
                 <button
                   type="button"
                   id="welcome-toast-ok-btn"
-                  onClick={() => setShowWelcomeToast(false)}
+                  onClick={handleDismissWelcome}
                   className="px-4 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs shadow-md transition-all active:scale-95 cursor-pointer flex items-center space-x-1.5"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-amber-300" />
@@ -1152,7 +1157,7 @@ export default function App() {
             <button
               type="button"
               id="welcome-toast-close-btn"
-              onClick={() => setShowWelcomeToast(false)}
+              onClick={handleDismissWelcome}
               className="absolute top-3 right-3 w-7 h-7 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-400 hover:text-white border border-slate-700/80 flex items-center justify-center text-xs transition-colors cursor-pointer"
               title="Dismiss welcome message"
               aria-label="Close"
