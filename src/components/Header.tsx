@@ -393,23 +393,6 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Master Admin Portal Trigger */}
-          {(!currentUser.isLoggedIn || isMasterAdmin) && (
-            <button
-              onClick={() => setShowGoogleModal(true)}
-              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center space-x-1 sm:space-x-1.5 border cursor-pointer ${
-                isMasterAdmin
-                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 shadow-md shadow-emerald-500/20'
-                  : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700'
-              }`}
-              title="Admin Verification Portal"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
-              <span className="hidden sm:inline">{isMasterAdmin ? 'Admin Verified' : 'Admin Login'}</span>
-              <span className="sm:hidden">{isMasterAdmin ? 'Admin' : 'Admin'}</span>
-            </button>
-          )}
-
           {/* Theme Switcher Toggle */}
           <button
             onClick={onToggleTheme}
@@ -633,18 +616,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
                 <span>Admin Console</span>
               </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setShowGoogleModal(true);
-                  setMobileNavOpen(false);
-                }}
-                className="flex items-center space-x-2 p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-800"
-              >
-                <Lock className="w-3.5 h-3.5 text-amber-400" />
-                <span>Admin Setup</span>
-              </button>
-            )}
+            ) : null}
           </div>
         )}
       </div>
