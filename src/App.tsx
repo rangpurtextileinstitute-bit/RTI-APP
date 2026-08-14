@@ -28,8 +28,6 @@ import { RedCrescentUnitSection } from './components/RedCrescentUnitSection';
 import { BloodDonationClub } from './components/BloodDonationClub';
 import { DepartmentAttendance } from './components/DepartmentAttendance';
 import { InstituteDigitalMagazine } from './components/InstituteDigitalMagazine';
-import { UpdateCheckerModal, CURRENT_APP_VERSION } from './components/UpdateCheckerModal';
-
 import {
   WetProcessingBatch,
   LabDipRecord,
@@ -79,7 +77,7 @@ import {
 } from './data/initialData';
 
 // Force clear old mock data from previous sessions
-const DATA_VERSION_KEY = 'rti_clean_slate_zero_records_v10';
+const DATA_VERSION_KEY = 'rti_clean_slate_zero_records_v50';
 if (typeof window !== 'undefined' && localStorage.getItem('rti_data_version') !== DATA_VERSION_KEY) {
   localStorage.clear();
   safeLocalStorageSet('rti_data_version', DATA_VERSION_KEY);
@@ -122,7 +120,6 @@ export default function App() {
   });
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [showManualUpdateModal, setShowManualUpdateModal] = useState<boolean>(false);
 
   // Dark/Light Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
@@ -222,10 +219,7 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_ALUMNI;
   });
 
-  const [redCrescentMembers, setRedCrescentMembers] = useState<RedCrescentMember[]>(() => {
-    const saved = localStorage.getItem('rti_red_crescent');
-    return saved ? JSON.parse(saved) : INITIAL_RED_CRESCENT_MEMBERS;
-  });
+  const [redCrescentMembers, setRedCrescentMembers] = useState<RedCrescentMember[]>(INITIAL_RED_CRESCENT_MEMBERS);
 
   const [magazines, setMagazines] = useState<InstituteMagazine[]>(() => {
     const saved = localStorage.getItem('rti_magazines');
@@ -1000,7 +994,7 @@ export default function App() {
         )}
 
         {activeTab === 'hostel_transport' && (
-          <HostelAndTransport />
+          <HostelAndTransport isMasterAdmin={isMasterAdmin} />
         )}
 
         {activeTab === 'alumni_network' && (
@@ -1096,12 +1090,6 @@ export default function App() {
           </div>
         </div>
       </footer>
-
-      {/* In-App Automatic & Manual Update Checker Modal */}
-      <UpdateCheckerModal
-        manualTrigger={showManualUpdateModal}
-        onCloseManualTrigger={() => setShowManualUpdateModal(false)}
-      />
 
       {/* Master Admin Modals */}
       {showRegisterModal && (

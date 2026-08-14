@@ -10,6 +10,26 @@ export interface UserContext {
   };
 }
 
+export const MAIN_ADMIN_EMAIL = "rangpurtextileinstitute@gmail.com";
+
+export interface HostelRoom {
+  roomNumber: string;
+  capacity: number;
+  occupied: number;
+}
+
+export interface HostelFloor {
+  floorNumber: number;
+  rooms: HostelRoom[];
+}
+
+export interface HostelAllocation {
+  id: string;
+  hostelName: string;
+  type: 'Boys' | 'Girls';
+  floors: HostelFloor[];
+}
+
 // 1. Wet Processing Records
 export interface WetProcessingBatch {
   id: string;
@@ -366,13 +386,3 @@ export interface SafetyReportComplaint {
   adminNotes?: string;
 }
 
-export interface HostelRoom {
-  roomNumber: string;
-  capacity: number;
-  occupied: number;
-}
-
-export interface HostelFloor {
-  floorNumber: number;
-  rooms: HostelRoom[];
-}
