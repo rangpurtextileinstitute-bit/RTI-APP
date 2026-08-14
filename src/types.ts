@@ -181,6 +181,7 @@ export interface RegisteredMember {
   internshipStatus?: 'Completed' | 'Ongoing' | 'Upcoming' | 'Not Started' | 'Seeking Placement' | string;
   internshipCompany?: string; // e.g. "Square Fashions Ltd"
   internshipDuration?: string; // e.g. "3 Months (Spring 2026)"
+  admissionStatus?: 'Enrolled' | 'Pending';
 }
 
 export interface AuditLog {

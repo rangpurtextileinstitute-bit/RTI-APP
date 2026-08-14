@@ -824,6 +824,12 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                     <div className="font-bold text-slate-900 mt-0.5">{selectedMember.semester || '5th Semester'}</div>
                   </div>
                   <div>
+                    <div className="text-slate-400 text-[10px]">Admission Status</div>
+                    <div className={`font-bold mt-0.5 ${selectedMember.admissionStatus === 'Enrolled' ? 'text-emerald-600' : 'text-amber-600'}`}>
+                      {selectedMember.admissionStatus || 'Pending'}
+                    </div>
+                  </div>
+                  <div>
                     <div className="text-slate-400 text-[10px]">Blood Group</div>
                     <div className="font-bold text-rose-600 mt-0.5">{selectedMember.bloodGroup || 'B+ (Positive)'}</div>
                   </div>
@@ -1012,6 +1018,18 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                           <DollarSign className="w-4 h-4 text-emerald-400" />
                           <span>Tuition & Laboratory Fee Clearance Module</span>
                         </h4>
+                        {isMasterAdmin && (
+                          <button
+                            onClick={() => {
+                              setEditingMember(selectedMember);
+                              setSelectedMember(null);
+                            }}
+                            className="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-[10px] flex items-center space-x-1 transition-all"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                            <span>Update</span>
+                          </button>
+                        )}
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${statusColor}`}>
                           {dueUSD === 0 ? 'PAID / CLEARED' : sf.status}
                         </span>
