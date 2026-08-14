@@ -153,7 +153,10 @@ export default function App() {
 
 
   // State with LocalStorage Persistence
-  const [batches, setBatches] = useState<WetProcessingBatch[]>([]);
+  const [batches, setBatches] = useState<WetProcessingBatch[]>(() => {
+    const saved = localStorage.getItem('rti_batches');
+    return saved ? JSON.parse(saved) : INITIAL_WET_PROCESSING_BATCHES;
+  });
 
   const [labDips, setLabDips] = useState<LabDipRecord[]>(() => {
     const saved = localStorage.getItem('rti_lab_dips');
@@ -195,14 +198,20 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_GATE_LOGS;
   });
 
-  const [registeredMembers, setRegisteredMembers] = useState<RegisteredMember[]>([]);
+  const [registeredMembers, setRegisteredMembers] = useState<RegisteredMember[]>(() => {
+    const saved = localStorage.getItem('rti_members');
+    return saved ? JSON.parse(saved) : REGISTERED_MEMBERS;
+  });
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     const saved = localStorage.getItem('rti_audit_logs');
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
 
-  const [notices, setNotices] = useState<NoticeRecord[]>([]);
+  const [notices, setNotices] = useState<NoticeRecord[]>(() => {
+    const saved = localStorage.getItem('rti_notices');
+    return saved ? JSON.parse(saved) : INITIAL_NOTICES;
+  });
 
   const [academicEvents, setAcademicEvents] = useState<AcademicEvent[]>(() => {
     const saved = localStorage.getItem('rti_events');
@@ -272,9 +281,6 @@ export default function App() {
     localStorage.setItem('rti_active_role', activeRole);
   }, [activeRole]);
 
-  useEffect(() => {
-    localStorage.setItem('rti_batches', JSON.stringify(batches));
-  }, [batches]);
 
   useEffect(() => {
     localStorage.setItem('rti_lab_dips', JSON.stringify(labDips));
@@ -308,11 +314,10 @@ export default function App() {
     localStorage.setItem('rti_gate_logs', JSON.stringify(gateLogs));
   }, [gateLogs]);
 
-  useEffect(() => {
-    localStorage.setItem('rti_members', JSON.stringify(registeredMembers));
-  }, [registeredMembers]);
 
   useEffect(() => {
+    if (!db) return;
+
     const unsubBatches = onSnapshot(collection(db, 'batches'), (snapshot) => {
       if (!snapshot.empty) {
         setBatches(snapshot.docs.map(d => d.data() as WetProcessingBatch));
@@ -350,13 +355,23 @@ export default function App() {
     };
   }, []);
 
+
   useEffect(() => {
-    localStorage.setItem('rti_audit_logs', JSON.stringify(auditLogs));
-  }, [auditLogs]);
+    localStorage.setItem('rti_batches', JSON.stringify(batches));
+  }, [batches]);
+
+  useEffect(() => {
+    localStorage.setItem('rti_members', JSON.stringify(registeredMembers));
+  }, [registeredMembers]);
 
   useEffect(() => {
     localStorage.setItem('rti_notices', JSON.stringify(notices));
   }, [notices]);
+
+  useEffect(() => {
+    localStorage.setItem('rti_audit_logs', JSON.stringify(auditLogs));
+  }, [auditLogs]);
+
 
   useEffect(() => {
     localStorage.setItem('rti_events', JSON.stringify(academicEvents));
@@ -555,7 +570,8 @@ export default function App() {
 
   // Department 1: Wet Processing handlers
   const handleAddBatch = async (batch: WetProcessingBatch) => {
-    await setDoc(doc(db, 'batches', batch.id), batch);
+    setBatches(prev => [batch, ...prev]);
+    if (db) await setDoc(doc(db, 'batches', batch.id), batch);
     addAuditEntry('New Wet Processing Batch Created', `Batch ${batch.batchNo} (${batch.fabricType}) added.`, 'Wet Processing');
   };
 
@@ -565,7 +581,8 @@ export default function App() {
   };
 
   const handleDeleteBatch = async (id: string) => {
-    await deleteDoc(doc(db, 'batches', id));
+    setBatches(prev => prev.filter(b => b.id !== id));
+    if (db) await deleteDoc(doc(db, 'batches', id));
     addAuditEntry('Batch Deleted', `Deleted batch ID ${id}`, 'Wet Processing');
   };
 
@@ -638,25 +655,29 @@ export default function App() {
   };
 
   const handleRegisterMember = async (member: RegisteredMember) => {
-    await setDoc(doc(db, 'registeredMembers', member.id), member);
+    setRegisteredMembers(prev => [member, ...prev]);
+    if (db) await setDoc(doc(db, 'registeredMembers', member.id), member);
     addAuditEntry('Member ID Issued', `Registered ${member.name} (${member.rollOrEmpId})`, 'Admin');
   };
 
   const handleUpdateMember = async (updatedMember: RegisteredMember) => {
-    await setDoc(doc(db, 'registeredMembers', updatedMember.id), updatedMember);
+    setRegisteredMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
+    if (db) await setDoc(doc(db, 'registeredMembers', updatedMember.id), updatedMember);
     addAuditEntry('Member Details Updated', `Updated profile for ${updatedMember.name} (${updatedMember.rollOrEmpId})`, updatedMember.department);
   };
 
   const handleDeleteMember = async (id: string) => {
     const member = registeredMembers.find(m => m.id === id);
-    await deleteDoc(doc(db, 'registeredMembers', id));
+    setRegisteredMembers(prev => prev.filter(m => m.id !== id));
+    if (db) await deleteDoc(doc(db, 'registeredMembers', id));
     if (member) {
       addAuditEntry('Member Removed', `Removed ${member.name} (${member.rollOrEmpId})`, member.department);
     }
   };
 
   const handlePublishNotice = async (notice: NoticeRecord) => {
-    await setDoc(doc(db, 'notices', notice.id), notice);
+    setNotices(prev => [notice, ...prev]);
+    if (db) await setDoc(doc(db, 'notices', notice.id), notice);
     addAuditEntry('Notice Published', `Title: "${notice.title}" Category: ${notice.category}`, 'Communications');
   };
 
@@ -747,18 +768,20 @@ export default function App() {
 
   const handleResetDefaults = async () => {
     if (window.confirm('Clear all institute records and reset database to an empty slate (0 records)?')) {
-      // Clear Firestore collections
-      const clearCollection = async (collName: string) => {
-        const snap = await getDocs(collection(db, collName));
-        const wb = writeBatch(db);
-        snap.docs.forEach(d => wb.delete(d.ref));
-        await wb.commit();
-      };
-      await Promise.all([
-        clearCollection('batches'),
-        clearCollection('registeredMembers'),
-        clearCollection('notices')
-      ]);
+      // Clear Firestore collections if DB exists
+      if (db) {
+        const clearCollection = async (collName: string) => {
+          const snap = await getDocs(collection(db, collName));
+          const wb = writeBatch(db);
+          snap.docs.forEach(d => wb.delete(d.ref));
+          await wb.commit();
+        };
+        await Promise.all([
+          clearCollection('batches'),
+          clearCollection('registeredMembers'),
+          clearCollection('notices')
+        ]);
+      }
 
       setBatches([]);
       setLabDips([]);
