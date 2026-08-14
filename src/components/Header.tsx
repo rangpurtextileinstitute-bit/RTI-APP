@@ -213,6 +213,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
 
     const res = onSetupAdminCredentials(cleanEmail, cleanPin);
+    console.log('Admin Setup Result:', res);
     if (res.success) {
       setShowGoogleModal(false);
       setIsSetupMode(false);
@@ -224,7 +225,7 @@ export const Header: React.FC<HeaderProps> = ({
         msg: res.message
       });
     } else {
-      alert(res.message);
+      alert(res.message || 'Failed to save admin credentials. Please try again.');
     }
   };
 

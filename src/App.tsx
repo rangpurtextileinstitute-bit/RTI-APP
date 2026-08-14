@@ -426,6 +426,7 @@ export default function App() {
     }
   };
 
+
   const handleLogin = (
     email: string, 
     _claimAsAdmin = false, 
@@ -789,6 +790,7 @@ export default function App() {
         onUpdateAdminEmail={handleUpdateAdminEmail}
         adminSecurityPin={adminSecurityPin}
         onUpdateAdminPin={handleUpdateAdminPin}
+        onSetupAdminCredentials={handleSetupAdminCredentials}
         currentUser={currentUser}
         onLogin={handleLogin}
         onLogout={handleLogout}
