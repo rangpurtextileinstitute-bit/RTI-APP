@@ -1,0 +1,28 @@
+{
+  "collections": [
+    {
+      "name": "registeredMembers",
+      "description": "Student and faculty records for the institute.",
+      "securityRules": {
+        "read": "true",
+        "write": "true"
+      }
+    },
+    {
+      "name": "batches",
+      "description": "Wet processing batches which include recipe configurations.",
+      "securityRules": {
+        "read": "true",
+        "write": "true"
+      }
+    },
+    {
+      "name": "notices",
+      "description": "Campus notices and announcements.",
+      "securityRules": {
+        "read": "true",
+        "write": "true"
+      }
+    }
+  ]
+}

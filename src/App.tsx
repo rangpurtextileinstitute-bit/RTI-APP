@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { db } from './lib/firebase';
 import { Sparkles, CheckCircle2, X, Building2, ShieldCheck } from 'lucide-react';
 import { Header } from './components/Header';
 import { MasterAdminBanner } from './components/MasterAdminBanner';
@@ -151,10 +153,7 @@ export default function App() {
 
 
   // State with LocalStorage Persistence
-  const [batches, setBatches] = useState<WetProcessingBatch[]>(() => {
-    const saved = localStorage.getItem('rti_batches');
-    return saved ? JSON.parse(saved) : INITIAL_WET_PROCESSING_BATCHES;
-  });
+  const [batches, setBatches] = useState<WetProcessingBatch[]>([]);
 
   const [labDips, setLabDips] = useState<LabDipRecord[]>(() => {
     const saved = localStorage.getItem('rti_lab_dips');
@@ -196,20 +195,14 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_GATE_LOGS;
   });
 
-  const [registeredMembers, setRegisteredMembers] = useState<RegisteredMember[]>(() => {
-    const saved = localStorage.getItem('rti_members');
-    return saved ? JSON.parse(saved) : REGISTERED_MEMBERS;
-  });
+  const [registeredMembers, setRegisteredMembers] = useState<RegisteredMember[]>([]);
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => {
     const saved = localStorage.getItem('rti_audit_logs');
     return saved ? JSON.parse(saved) : INITIAL_AUDIT_LOGS;
   });
 
-  const [notices, setNotices] = useState<NoticeRecord[]>(() => {
-    const saved = localStorage.getItem('rti_notices');
-    return saved ? JSON.parse(saved) : INITIAL_NOTICES;
-  });
+  const [notices, setNotices] = useState<NoticeRecord[]>([]);
 
   const [academicEvents, setAcademicEvents] = useState<AcademicEvent[]>(() => {
     const saved = localStorage.getItem('rti_events');
@@ -318,6 +311,44 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('rti_members', JSON.stringify(registeredMembers));
   }, [registeredMembers]);
+
+  useEffect(() => {
+    const unsubBatches = onSnapshot(collection(db, 'batches'), (snapshot) => {
+      if (!snapshot.empty) {
+        setBatches(snapshot.docs.map(d => d.data() as WetProcessingBatch));
+      } else {
+        const wb = writeBatch(db);
+        INITIAL_WET_PROCESSING_BATCHES.forEach(item => wb.set(doc(db, 'batches', item.id), item));
+        wb.commit();
+      }
+    });
+
+    const unsubMembers = onSnapshot(collection(db, 'registeredMembers'), (snapshot) => {
+      if (!snapshot.empty) {
+        setRegisteredMembers(snapshot.docs.map(d => d.data() as RegisteredMember));
+      } else {
+        const wb = writeBatch(db);
+        REGISTERED_MEMBERS.forEach(item => wb.set(doc(db, 'registeredMembers', item.id), item));
+        wb.commit();
+      }
+    });
+
+    const unsubNotices = onSnapshot(collection(db, 'notices'), (snapshot) => {
+      if (!snapshot.empty) {
+        setNotices(snapshot.docs.map(d => d.data() as NoticeRecord));
+      } else {
+        const wb = writeBatch(db);
+        INITIAL_NOTICES.forEach(item => wb.set(doc(db, 'notices', item.id), item));
+        wb.commit();
+      }
+    });
+
+    return () => {
+      unsubBatches();
+      unsubMembers();
+      unsubNotices();
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('rti_audit_logs', JSON.stringify(auditLogs));
@@ -523,8 +554,8 @@ export default function App() {
   };
 
   // Department 1: Wet Processing handlers
-  const handleAddBatch = (batch: WetProcessingBatch) => {
-    setBatches(prev => [batch, ...prev]);
+  const handleAddBatch = async (batch: WetProcessingBatch) => {
+    await setDoc(doc(db, 'batches', batch.id), batch);
     addAuditEntry('New Wet Processing Batch Created', `Batch ${batch.batchNo} (${batch.fabricType}) added.`, 'Wet Processing');
   };
 
@@ -533,8 +564,8 @@ export default function App() {
     addAuditEntry('Lab Dip Logged', `Sample ${dip.sampleCode} (${dip.shadeName}) status: ${dip.passFail}`, 'Wet Processing');
   };
 
-  const handleDeleteBatch = (id: string) => {
-    setBatches(prev => prev.filter(b => b.id !== id));
+  const handleDeleteBatch = async (id: string) => {
+    await deleteDoc(doc(db, 'batches', id));
     addAuditEntry('Batch Deleted', `Deleted batch ID ${id}`, 'Wet Processing');
   };
 
@@ -606,26 +637,26 @@ export default function App() {
     addAuditEntry('Master Admin Gate Override', `Forced access grant for scan log ${logId}`, 'Gate Security');
   };
 
-  const handleRegisterMember = (member: RegisteredMember) => {
-    setRegisteredMembers(prev => [member, ...prev]);
+  const handleRegisterMember = async (member: RegisteredMember) => {
+    await setDoc(doc(db, 'registeredMembers', member.id), member);
     addAuditEntry('Member ID Issued', `Registered ${member.name} (${member.rollOrEmpId})`, 'Admin');
   };
 
-  const handleUpdateMember = (updatedMember: RegisteredMember) => {
-    setRegisteredMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
+  const handleUpdateMember = async (updatedMember: RegisteredMember) => {
+    await setDoc(doc(db, 'registeredMembers', updatedMember.id), updatedMember);
     addAuditEntry('Member Details Updated', `Updated profile for ${updatedMember.name} (${updatedMember.rollOrEmpId})`, updatedMember.department);
   };
 
-  const handleDeleteMember = (id: string) => {
+  const handleDeleteMember = async (id: string) => {
     const member = registeredMembers.find(m => m.id === id);
-    setRegisteredMembers(prev => prev.filter(m => m.id !== id));
+    await deleteDoc(doc(db, 'registeredMembers', id));
     if (member) {
       addAuditEntry('Member Removed', `Removed ${member.name} (${member.rollOrEmpId})`, member.department);
     }
   };
 
-  const handlePublishNotice = (notice: NoticeRecord) => {
-    setNotices(prev => [notice, ...prev]);
+  const handlePublishNotice = async (notice: NoticeRecord) => {
+    await setDoc(doc(db, 'notices', notice.id), notice);
     addAuditEntry('Notice Published', `Title: "${notice.title}" Category: ${notice.category}`, 'Communications');
   };
 
@@ -714,8 +745,21 @@ export default function App() {
     addAuditEntry('Guardian SMS Alert Dispatched', `Alert sent to ${studentId}: ${alertType}`, 'Guardian Portal');
   };
 
-  const handleResetDefaults = () => {
+  const handleResetDefaults = async () => {
     if (window.confirm('Clear all institute records and reset database to an empty slate (0 records)?')) {
+      // Clear Firestore collections
+      const clearCollection = async (collName: string) => {
+        const snap = await getDocs(collection(db, collName));
+        const wb = writeBatch(db);
+        snap.docs.forEach(d => wb.delete(d.ref));
+        await wb.commit();
+      };
+      await Promise.all([
+        clearCollection('batches'),
+        clearCollection('registeredMembers'),
+        clearCollection('notices')
+      ]);
+
       setBatches([]);
       setLabDips([]);
       setYarnRecords([]);
