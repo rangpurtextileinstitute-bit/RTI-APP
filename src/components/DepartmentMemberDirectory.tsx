@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -75,6 +75,13 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
 
   // Edit Member Modal State
   const [editingMember, setEditingMember] = useState<RegisteredMember | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!editingMember) {
+      setShowDeleteConfirm(false);
+    }
+  }, [editingMember]);
 
   // Add Member Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1989,27 +1996,49 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
                 <div>
                   {onDeleteMember && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm(`Are you sure you want to remove ${editingMember.name}?`)) {
-                          onDeleteMember(editingMember.id);
-                          setEditingMember(null);
-                          setSelectedMember(null);
-                        }
-                      }}
-                      className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs border border-rose-200 flex items-center space-x-1"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Delete Record</span>
-                    </button>
+                    showDeleteConfirm ? (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs font-bold text-rose-500">Confirm?</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onDeleteMember(editingMember.id);
+                            setEditingMember(null);
+                            setSelectedMember(null);
+                            setShowDeleteConfirm(false);
+                          }}
+                          className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs"
+                        >
+                          Yes, Delete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowDeleteConfirm(false)}
+                          className="px-3 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-lg text-xs"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold rounded-xl text-xs border border-rose-200 flex items-center space-x-1 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete Record</span>
+                      </button>
+                    )
                   )}
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <button
                     type="button"
-                    onClick={() => setEditingMember(null)}
+                    onClick={() => {
+                      setEditingMember(null);
+                      setShowDeleteConfirm(false);
+                    }}
                     className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs"
                   >
                     Cancel

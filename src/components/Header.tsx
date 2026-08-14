@@ -316,9 +316,10 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="bg-slate-900 border-b border-indigo-900/60 text-white sticky top-0 z-40 shadow-xl backdrop-blur-md">
-      {/* Top Utility & Institute Branding Bar */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-3">
+    <>
+      <header className="bg-slate-900 border-b border-indigo-900/60 text-white sticky top-0 z-40 shadow-xl backdrop-blur-md">
+        {/* Top Utility & Institute Branding Bar */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-3">
         {/* Brand Logo & Name */}
         <div className="flex items-center space-x-2.5 sm:space-x-3 cursor-pointer min-w-0" onClick={() => setActiveTab('dashboard')}>
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-sky-400 p-0.5 shadow-lg shadow-purple-500/20 flex-shrink-0">
@@ -647,6 +648,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         )}
       </div>
+      </header>
 
       {/* GOOGLE GMAIL ADMIN OAUTH & CLAIM MODAL */}
       {showGoogleModal && (
@@ -1109,7 +1111,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 };
 

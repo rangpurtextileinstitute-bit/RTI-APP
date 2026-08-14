@@ -1049,7 +1049,7 @@ export default function App() {
       {showWelcomeToast && (
         <div 
           id="welcome-toast-overlay"
-          className="fixed bottom-5 right-5 z-[90] max-w-md w-[calc(100vw-2.5rem)] animate-slideUp"
+          className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-5 sm:bottom-5 z-[90] sm:w-[400px] animate-slideUp"
         >
           <div className="bg-slate-900/95 backdrop-blur-xl border-2 border-indigo-500/50 text-white p-4 sm:p-5 rounded-2xl shadow-2xl shadow-indigo-950/80 relative flex items-start space-x-3.5">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-600/30">

@@ -105,10 +105,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const currentNotice = urgentNotices[activeNoticeIdx] || urgentNotices[0];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       {/* Urgent Campus Notice Ticker & Announcement Banner */}
-      <div className="bg-gradient-to-r from-rose-950 via-amber-950/80 to-slate-900 border border-rose-600/50 rounded-2xl p-4 text-white shadow-xl shadow-rose-950/40 relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-start sm:items-center space-x-3 min-w-0 flex-1">
+      <div className="w-full bg-gradient-to-r from-rose-950 via-amber-950/80 to-slate-900 border border-rose-600/50 rounded-2xl p-4 text-white shadow-xl shadow-rose-950/40 relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-start sm:items-center space-x-3 min-w-0 flex-1 w-full">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-600 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-rose-600/30">
             <Megaphone className="w-5 h-5 text-white animate-bounce" />
           </div>
