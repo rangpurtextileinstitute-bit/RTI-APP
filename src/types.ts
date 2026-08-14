@@ -11,6 +11,7 @@ export interface UserContext {
 }
 
 export const MAIN_ADMIN_EMAIL = "rangpurtextileinstitute@gmail.com";
+export const CURRENT_APP_VERSION = "1.1.0";
 
 export interface HostelRoom {
   roomNumber: string;

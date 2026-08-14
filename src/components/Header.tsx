@@ -306,14 +306,18 @@ export const Header: React.FC<HeaderProps> = ({
       onRegisterMember(newMember);
     }
     
-    // Auto login newly registered member
-    onLogin(newMember.email, false);
-    setIsMasterAdmin(false);
-    setActiveRole(regForm.role);
+    // PREVENT Admin Session Invalidation: Only auto-login if NOT currently logged in as Main Admin
+    if (!isMasterAdmin) {
+      onLogin(newMember.email, false);
+      setActiveRole(regForm.role);
+    }
+    
     setShowSelfRegModal(false);
     setAuthNotification({
       type: 'SUCCESS',
-      msg: `Self-Registration Complete! Registered ${regForm.name} as ${regForm.role} under ${regForm.department.replace('_', ' ').toUpperCase()} Department.`
+      msg: isMasterAdmin
+        ? `📥 Student submission received! Registered ${regForm.name} to Main Admin Dashboard (rangpurtextileinstitute@gmail.com).`
+        : `Self-Registration Complete! Registered ${regForm.name} as ${regForm.role} under ${regForm.department.replace('_', ' ').toUpperCase()} Department.`
     });
   };
 
@@ -348,15 +352,17 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* User Session, Admin Controls & Mobile Menu Toggle */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
-          {/* Public Self-Registration / Sign Up Button */}
-          <button
-            onClick={handleOpenSelfReg}
-            className="px-2.5 sm:px-3.5 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-white border border-purple-400/50 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center space-x-1 sm:space-x-1.5 shadow-sm shadow-purple-500/20 cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-            <span className="hidden sm:inline">Sign Up / Register</span>
-            <span className="sm:hidden">Register</span>
-          </button>
+          {/* Public Self-Registration / Sign Up Button (Hidden for Main Admin) */}
+          {!isMasterAdmin && (
+            <button
+              onClick={handleOpenSelfReg}
+              className="px-2.5 sm:px-3.5 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-white border border-purple-400/50 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center space-x-1 sm:space-x-1.5 shadow-sm shadow-purple-500/20 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+              <span className="hidden sm:inline">Sign Up / Register</span>
+              <span className="sm:hidden">Register</span>
+            </button>
+          )}
 
           {/* User Session Status & Log Out Button */}
           {currentUser.isLoggedIn ? (

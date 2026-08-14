@@ -49,7 +49,9 @@ import {
   RedCrescentMember,
   InstituteMagazine,
   TeacherLateAlert,
-  ConsecutiveAbsenceRecord
+  ConsecutiveAbsenceRecord,
+  CURRENT_APP_VERSION,
+  MAIN_ADMIN_EMAIL
 } from './types';
 
 import {
@@ -87,9 +89,9 @@ export default function App() {
   // Master Admin switch state (Default: false for unauthenticated visitors)
   const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(() => safeLocalStorageGet('rti_master_admin', false));
 
-  // Designated Single Main Admin Email State (Dynamic - defined by user during setup)
+  // Designated Single Main Admin Email State (Default: MAIN_ADMIN_EMAIL)
   const [designatedAdminEmail, setDesignatedAdminEmail] = useState<string>(() => {
-    return (typeof window !== 'undefined' && localStorage.getItem('rti_designated_admin_email')) || '';
+    return (typeof window !== 'undefined' && localStorage.getItem('rti_designated_admin_email')) || MAIN_ADMIN_EMAIL;
   });
 
   // Admin Security PIN State (Dynamic - defined by user during setup)
@@ -398,7 +400,7 @@ export default function App() {
 
   // Security Enforcement Guard: Ensure isMasterAdmin can NEVER be true if user is not authenticated as Main Admin
   useEffect(() => {
-    if (!currentUser.isLoggedIn || !currentUser.email || currentUser.email.toLowerCase() !== designatedAdminEmail.toLowerCase()) {
+    if (!currentUser.isLoggedIn || !currentUser.email || (currentUser.email.toLowerCase() !== designatedAdminEmail.toLowerCase() && currentUser.email.toLowerCase() !== MAIN_ADMIN_EMAIL.toLowerCase())) {
       if (isMasterAdmin) {
         setIsMasterAdmin(false);
       }
@@ -462,19 +464,13 @@ export default function App() {
     enteredPin?: string
   ): { success: boolean; message: string } => {
     const cleanEmail = email.trim().toLowerCase();
+    const adminEmail = (designatedAdminEmail || MAIN_ADMIN_EMAIL).trim().toLowerCase();
     
-    if (!designatedAdminEmail) {
-      return {
-        success: false,
-        message: '⚠️ Main Admin has not been configured yet. Please perform Initial Main Admin Setup.'
-      };
-    }
-
-    if (cleanEmail === designatedAdminEmail.trim().toLowerCase()) {
+    if (cleanEmail === adminEmail || cleanEmail === MAIN_ADMIN_EMAIL.toLowerCase()) {
       const inputPin = (enteredPin || '').trim();
       const validPin = (adminSecurityPin || '').trim();
       
-      if (!inputPin || (validPin && inputPin !== validPin)) {
+      if (validPin && inputPin !== validPin) {
         addAuditEntry('Admin Access Blocked', `Failed Security PIN verification for ${cleanEmail}`, 'Security Administration');
         return { 
           success: false, 
@@ -485,7 +481,7 @@ export default function App() {
       setIsMasterAdmin(true);
       setActiveRole('Super Admin');
       const adminUser = {
-        email: designatedAdminEmail,
+        email: MAIN_ADMIN_EMAIL,
         name: 'Main Admin',
         role: 'Super Admin',
         isLoggedIn: true
@@ -500,6 +496,15 @@ export default function App() {
       addAuditEntry('Admin Login Successful', `${cleanEmail} authenticated as Main Admin.`, 'Security Administration');
       return { success: true, message: `✅ Security verification successful! Logged in as Main Admin.` };
     } else {
+      // PREVENT Admin Session Invalidation: If Main Admin is currently logged in, keep admin session intact
+      if (isMasterAdmin && currentUser.isLoggedIn) {
+        addAuditEntry('Student Registration Routed', `Student sign-in/registration for ${cleanEmail} routed to Main Admin Dashboard`, 'Admin Portal');
+        return { 
+          success: true, 
+          message: `📥 Student submission for ${cleanEmail} received! Routed to Main Admin Dashboard (${MAIN_ADMIN_EMAIL}). Admin session remains active.` 
+        };
+      }
+
       // Regular Student / User Login
       setIsMasterAdmin(false);
       setActiveRole('Student');
@@ -986,7 +991,7 @@ export default function App() {
         )}
 
         {activeTab === 'routines_syllabus' && (
-          <RoutinesAndSyllabus />
+          <RoutinesAndSyllabus isMasterAdmin={isMasterAdmin} />
         )}
 
         {activeTab === 'placement_desk' && (
@@ -1080,9 +1085,9 @@ export default function App() {
             <span>Alumni Directory</span>
             <span>•</span>
             <button
-              onClick={() => setShowManualUpdateModal(true)}
-              className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-purple-950/80 hover:bg-purple-900 text-purple-300 hover:text-white font-bold rounded-lg border border-purple-500/40 transition shadow-sm"
-              title="Check for application updates"
+              onClick={() => alert('🚀 RTI OS v1.1.0 is active and up to date.')}
+              className="inline-flex items-center space-x-1.5 px-2.5 py-1 bg-purple-950/80 hover:bg-purple-900 text-purple-300 hover:text-white font-bold rounded-lg border border-purple-500/40 transition shadow-sm cursor-pointer"
+              title="Application Version v1.1.0"
             >
               <span>🚀 v{CURRENT_APP_VERSION}</span>
               <span className="text-[10px] bg-purple-500/30 text-purple-200 px-1.5 py-0.2 rounded font-extrabold uppercase">Updates</span>

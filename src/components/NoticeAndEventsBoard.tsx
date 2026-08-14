@@ -138,27 +138,29 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
-          {onOpenAiDrafter && (
-            <button
-              onClick={onOpenAiDrafter}
-              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 text-white font-bold text-xs shadow-lg shadow-sky-600/25 transition-all cursor-pointer"
-            >
-              <Sparkles className="w-4 h-4 text-amber-300" />
-              <span>Draft Notice with AI</span>
-            </button>
-          )}
+        {isMasterAdmin && (
+          <div className="flex items-center space-x-3">
+            {onOpenAiDrafter && (
+              <button
+                onClick={onOpenAiDrafter}
+                className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 text-white font-bold text-xs shadow-lg shadow-sky-600/25 transition-all cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                <span>Draft Notice with AI</span>
+              </button>
+            )}
 
-          <button
-            id="public-create-notice-btn"
-            onClick={() => setShowCreateNoticeModal(true)}
-            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer"
-            title="Create and publish a new campus notice publicly"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Create / Add Notice</span>
-          </button>
-        </div>
+            <button
+              id="public-create-notice-btn"
+              onClick={() => setShowCreateNoticeModal(true)}
+              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer"
+              title="Create and publish a new campus notice publicly"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>+ Create / Add Notice</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Sub Tabs */}
@@ -277,13 +279,15 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
             <div className="font-bold text-sm text-slate-900">
               August 2026 Academic Event Schedule
             </div>
-            <button
-              onClick={() => setShowCreateEventModal(true)}
-              className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs flex items-center space-x-1.5"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Schedule Academic Event</span>
-            </button>
+            {isMasterAdmin && (
+              <button
+                onClick={() => setShowCreateEventModal(true)}
+                className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs flex items-center space-x-1.5"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Schedule Academic Event</span>
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
