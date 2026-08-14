@@ -70,7 +70,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; time: string }>>([
     {
       sender: 'ai',
-      text: 'Hello! I am the NIOTRON AI Operations Intelligence Assistant. Ask me about attendance risk detection, fee due analysis, textile formulations, or drafting campus notices.',
+      text: 'Hello! I am the RTI Operations Intelligence Assistant. Ask me about attendance risk detection, fee due analysis, textile formulations, or drafting campus notices.',
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -110,7 +110,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
   const handleGenerateNoticeDraft = () => {
     setIsGeneratingNotice(true);
     setTimeout(() => {
-      const generated = `OFFICIAL INSTITUTIONAL NOTICE\nRef: NIO/NOTICE/2026/${Math.floor(100 + Math.random() * 900)}\nDate: ${new Date().toISOString().split('T')[0]}\n\nSUBJECT: ${noticeTopic.toUpperCase()}\n\nThis is an official announcement from the NIOTRON Textile Institute Administration regarding ${noticeTopic}.\n\nKEY DIRECTIVES & GUIDELINES:\n1. All concern parties (${noticeRole}) must strictly observe safety protocols and scheduling rules.\n2. Lab Technicians & Faculty Members are requested to log equipment state into the Departmental OS.\n3. Turnstile gate access rules remain active; please scan valid QR ID Badges at turnstiles.\n\nIssued by: Office of the Director General & Master Admin\nNational Institute of Textile Research & Operations Network (NIOTRON)`;
+      const generated = `OFFICIAL INSTITUTIONAL NOTICE\nRef: RTI/NOTICE/2026/${Math.floor(100 + Math.random() * 900)}\nDate: ${new Date().toISOString().split('T')[0]}\n\nSUBJECT: ${noticeTopic.toUpperCase()}\n\nThis is an official announcement from the Rangpur Textile Institute Administration regarding ${noticeTopic}.\n\nKEY DIRECTIVES & GUIDELINES:\n1. All concern parties (${noticeRole}) must strictly observe safety protocols and scheduling rules.\n2. Lab Technicians & Faculty Members are requested to log equipment state into the Departmental OS.\n3. Turnstile gate access rules remain active; please scan valid QR ID Badges at turnstiles.\n\nIssued by: Office of the Director General & Master Admin\nRangpur Textile Institute (RTI)`;
       setDraftedNoticeText(generated);
       setIsGeneratingNotice(false);
     }, 600);
@@ -122,14 +122,14 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
       id: `not-${Date.now()}`,
       title: noticeTopic,
       category: noticeCategory,
-      author: 'NIOTRON AI Notice Assistant (Master Admin Approved)',
+      author: 'RTI AI Notice Assistant (Master Admin Approved)',
       department: 'General Administration',
       date: new Date().toISOString().split('T')[0],
       content: draftedNoticeText,
       priority: noticeCategory === 'Lab Safety' || noticeCategory === 'Urgent' ? 'High' : 'Medium',
       isPublished: true,
       targetRole: noticeRole,
-      refNo: `NIO/AI/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`
+      refNo: `RTI/AI/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`
     };
 
     onPublishNotice(newNotice);
@@ -153,7 +153,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
       const q = userMsg.toLowerCase();
       
       if (q.includes('attendance') || q.includes('risk') || q.includes('absent')) {
-        aiText = `📊 Attendance Risk Analysis:\nFound ${atRiskStudents.length} student(s) requiring academic attention. For example, Siam Chowdhury (Roll: NIO-AP-S50088) currently stands at 74.5% attendance and was flagged late at Main Gate today. Would you like me to dispatch an SMS alert to his guardian?`;
+        aiText = `📊 Attendance Risk Analysis:\nFound ${atRiskStudents.length} student(s) requiring academic attention. For example, Siam Chowdhury (Roll: RTI-AP-S50088) currently stands at 74.5% attendance and was flagged late at Main Gate today. Would you like me to dispatch an SMS alert to his guardian?`;
       } else if (q.includes('fee') || q.includes('due') || q.includes('tuition') || q.includes('paid')) {
         aiText = `💰 Fee Due Analysis:\nTotal outstanding student balance across all departments is ৳${totalOutstandingBDT.toLocaleString()} BDT. High-priority overdue account: Siam Chowdhury (৳1,900 BDT overdue). Mahia Zaman has ৳650 BDT partial balance due on Aug 20.`;
       } else if (q.includes('dye') || q.includes('delta') || q.includes('wet') || q.includes('recipe')) {
@@ -161,7 +161,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
       } else if (q.includes('yarn') || q.includes('csp') || q.includes('count')) {
         aiText = `🧵 Yarn Quality Insight:\nCompact Spun 40s Ne Lot YRN-40S-COMP achieved CSP 2,940 (Target ≥ 2,800) with spindle speed 18,500 RPM. Hairiness index H = 4.1. Waste percentage is well within 15% tolerance.`;
       } else {
-        aiText = `🤖 NIOTRON AI Assistant: I can help analyze live attendance risk scores, fee due collection targets, draft campus notices, or verify textile engineering parameters (CSP, SAM, Delta-E). Feel free to select any quick analysis tab above!`;
+        aiText = `🤖 RTI AI Assistant: I can help analyze live attendance risk scores, fee due collection targets, draft campus notices, or verify textile engineering parameters (CSP, SAM, Delta-E). Feel free to select any quick analysis tab above!`;
       }
 
       setChatMessages(prev => [...prev, { 
@@ -190,7 +190,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
               </span>
             </div>
             <h2 className="text-xl font-black tracking-tight text-white font-mono mt-0.5 flex items-center space-x-2">
-              <span>NIOTRON Smart AI Assistant</span>
+              <span>RTI Smart AI Assistant</span>
               <Sparkles className="w-4 h-4 text-amber-400" />
             </h2>
           </div>
@@ -515,7 +515,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
                   }`}
                 >
                   <div className="font-bold text-[10px] opacity-75 mb-1 flex justify-between">
-                    <span>{msg.sender === 'user' ? 'You (Master Admin)' : 'NIOTRON AI'}</span>
+                    <span>{msg.sender === 'user' ? 'You (Master Admin)' : 'RTI AI'}</span>
                     <span>{msg.time}</span>
                   </div>
                   {msg.text}
@@ -552,8 +552,8 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
 
       {/* GUARDIAN SMS PREVIEW MODAL */}
       {smsModal?.isOpen && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 text-white">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 text-white max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center space-x-2">
                 <Send className="w-5 h-5 text-indigo-400" />
@@ -589,7 +589,7 @@ export const AIAssistantWidget: React.FC<AIAssistantWidgetProps> = ({
 
               <div className="bg-indigo-950/50 p-2.5 rounded-xl border border-indigo-500/30 text-[10px] text-indigo-300 flex items-center space-x-2">
                 <Sparkles className="w-4 h-4 text-indigo-400 flex-shrink-0" />
-                <span>SMS will be routed through NIOTRON Campus Telecom Gateway & logged into Guardian Portal.</span>
+                <span>SMS will be routed through RTI Campus Telecom Gateway & logged into Guardian Portal.</span>
               </div>
             </div>
 

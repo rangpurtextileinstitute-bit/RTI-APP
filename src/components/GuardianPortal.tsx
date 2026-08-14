@@ -117,7 +117,7 @@ export const GuardianPortal: React.FC<GuardianPortalProps> = ({
                   Parent & Guardian Digital Access
                 </span>
                 <h2 className="text-2xl font-black tracking-tight text-white font-mono flex items-center space-x-2">
-                  <span>NIOTRON Student Guardian Portal</span>
+                  <span>Rangpur Textile Institute Guardian Portal</span>
                   <ShieldCheck className="w-5 h-5 text-emerald-400" />
                 </h2>
               </div>
@@ -377,12 +377,12 @@ export const GuardianPortal: React.FC<GuardianPortalProps> = ({
 
       {/* ONLINE FEE PAYMENT MODAL */}
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
               <h3 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
                 <CreditCard className="w-5 h-5 text-emerald-600" />
-                <span>NIOTRON Online Fee Payment Gateway</span>
+                <span>RTI Online Fee Payment Gateway</span>
               </h3>
               <button onClick={() => setShowPaymentModal(false)} className="text-slate-400 font-bold">✕</button>
             </div>
@@ -438,8 +438,8 @@ export const GuardianPortal: React.FC<GuardianPortalProps> = ({
 
       {/* SUCCESS RECEIPT MODAL */}
       {paymentSuccessReceipt && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl space-y-4 text-center">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 text-center max-h-[90vh] overflow-y-auto">
             <div className="inline-flex p-3 rounded-full bg-emerald-100 text-emerald-600">
               <CheckCircle2 className="w-12 h-12" />
             </div>

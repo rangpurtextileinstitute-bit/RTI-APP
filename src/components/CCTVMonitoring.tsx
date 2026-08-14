@@ -333,8 +333,8 @@ export const CCTVMonitoring: React.FC<CCTVMonitoringProps> = ({
 
       {/* PTZ Expand Modal */}
       {selectedCam && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-purple-500/40 rounded-3xl max-w-4xl w-full p-6 shadow-2xl space-y-5 text-white">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-purple-500/40 rounded-2xl sm:rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-4 sm:space-y-5 text-white max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div className="flex items-center space-x-3">
                 <div className="p-2.5 bg-purple-600/30 border border-purple-500/50 rounded-xl text-purple-300">

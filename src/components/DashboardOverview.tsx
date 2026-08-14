@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   BarChart3, 
   FlaskConical, 
@@ -15,7 +15,12 @@ import {
   Bot,
   FileText,
   FileCheck,
-  Heart
+  Heart,
+  Droplet,
+  Megaphone,
+  Bell,
+  ArrowRight,
+  Calendar
 } from 'lucide-react';
 import { 
   WetProcessingBatch, 
@@ -23,9 +28,11 @@ import {
   LoomProductionRecord, 
   SewingLineRecord, 
   GateAccessLog,
-  RedCrescentMember
+  RedCrescentMember,
+  NoticeRecord
 } from '../types';
 import { RedCrescentUnitSection } from './RedCrescentUnitSection';
+import { EmergencyHelplineWidget } from './EmergencyHelplineWidget';
 
 interface DashboardOverviewProps {
   batches: WetProcessingBatch[];
@@ -33,6 +40,7 @@ interface DashboardOverviewProps {
   loomRecords: LoomProductionRecord[];
   sewingRecords: SewingLineRecord[];
   gateLogs: GateAccessLog[];
+  notices?: NoticeRecord[];
   redCrescentMembers?: RedCrescentMember[];
   onAddRedCrescentMember?: (member: RedCrescentMember) => void;
   onUpdateRedCrescentMember?: (member: RedCrescentMember) => void;
@@ -47,6 +55,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   loomRecords,
   sewingRecords,
   gateLogs,
+  notices = [],
   redCrescentMembers = [],
   onAddRedCrescentMember = () => {},
   onUpdateRedCrescentMember = () => {},
@@ -56,8 +65,90 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
 }) => {
   const activeGateCount = gateLogs.filter(l => l.direction === 'IN' && l.status === 'GRANTED').length;
 
+  const urgentNotices = notices.length > 0 ? notices : [
+    {
+      id: 'urgent-01',
+      title: 'Final Semester Examination Routine & Digital Clearance 2026 Published',
+      category: 'Urgent' as const,
+      author: 'Office of the Controller of Examinations',
+      department: 'Academic Office',
+      date: '2026-08-14',
+      content: 'All departmental students across 4 academic textile disciplines must clear dues and collect smart admit badges before the exam commencement date.',
+      priority: 'High' as const,
+      refNo: 'RTI/EXAM/2026/N-104',
+      isPublished: true
+    },
+    {
+      id: 'urgent-02',
+      title: 'Campus Emergency SOS Protocol & Begum Rokeya Hostel Safety Advisory',
+      category: 'Hostel & Mess' as const,
+      author: 'Proctorial Board & Female Hostel Warden',
+      department: 'Campus Security',
+      date: '2026-08-14',
+      content: 'Direct click-to-call helpline numbers (Warden: 01711-222333, Security: 01711-000111, Govt: 109 & 999) and Anonymous Complaint Box are fully active.',
+      priority: 'High' as const,
+      refNo: 'RTI/SAFE/2026/N-089',
+      isPublished: true
+    }
+  ];
+
+  const [activeNoticeIdx, setActiveNoticeIdx] = useState(0);
+
+  useEffect(() => {
+    if (urgentNotices.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveNoticeIdx(prev => (prev + 1) % urgentNotices.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [urgentNotices.length]);
+
+  const currentNotice = urgentNotices[activeNoticeIdx] || urgentNotices[0];
+
   return (
     <div className="space-y-6">
+      {/* Urgent Campus Notice Ticker & Announcement Banner */}
+      <div className="bg-gradient-to-r from-rose-950 via-amber-950/80 to-slate-900 border border-rose-600/50 rounded-2xl p-4 text-white shadow-xl shadow-rose-950/40 relative overflow-hidden flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex items-start sm:items-center space-x-3 min-w-0 flex-1">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-600 to-amber-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-rose-600/30">
+            <Megaphone className="w-5 h-5 text-white animate-bounce" />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center space-x-2 flex-wrap">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white flex items-center space-x-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-ping"></span>
+                <span>URGENT ANNOUNCEMENT</span>
+              </span>
+              <span className="text-[11px] font-mono text-amber-300/90 font-bold">
+                Ref: {currentNotice.refNo || 'RTI/ACAD/2026'}
+              </span>
+              <span className="text-[11px] text-slate-300 font-medium flex items-center space-x-1">
+                <Calendar className="w-3 h-3 text-slate-400" />
+                <span>{currentNotice.date}</span>
+              </span>
+            </div>
+
+            <h4 className="text-xs sm:text-sm font-black text-white tracking-tight mt-1 truncate">
+              {currentNotice.title}
+            </h4>
+            <p className="text-[11px] text-slate-200 line-clamp-1 mt-0.5">
+              {currentNotice.content}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2 flex-shrink-0 self-end sm:self-center">
+          <button
+            onClick={() => onNavigateTab('notices_attendance')}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition-all whitespace-nowrap active:scale-95 cursor-pointer"
+            title="Read complete notices on Notice Board"
+          >
+            <span>Notice Board</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
       {/* Hero Welcome & Institute Summary Banner */}
       <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 rounded-2xl p-6 text-white border border-indigo-800/40 shadow-xl relative overflow-hidden">
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
@@ -73,20 +164,20 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               )}
             </div>
             <h2 className="text-2xl font-black tracking-tight text-white font-mono mt-2">
-              NIOTRON Textile Institute Operating System
+              Rangpur Textile Institute Management System
             </h2>
             <p className="text-sm text-slate-300 mt-1 max-w-2xl">
-              Integrated real-time management for 4 Academic Textile Departments, Chemical Dyeing Labs, Spinning Mills, Weaving Looms, Apparel SAM Efficiency, and Smart QR Gate Turnstiles.
+              Official RTI OS v5.0 portal for Student & Faculty Registries, Digital Notice Board, Attendance Gate Logging, and 4 Academic Textile Departments.
             </p>
           </div>
 
           <div className="flex items-center space-x-3">
             <button
-              onClick={() => onNavigateTab('qr_gate')}
+              onClick={() => onNavigateTab('notices_attendance')}
               className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all"
             >
               <QrCode className="w-4 h-4" />
-              <span>Live Gate Monitor</span>
+              <span>Gate & Attendance Logs</span>
             </button>
           </div>
         </div>
@@ -147,6 +238,9 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
       </div>
 
+      {/* Campus Emergency SOS, Women Helpline & Anonymous Safety Complaints Widget */}
+      <EmergencyHelplineWidget isMasterAdmin={isMasterAdmin} />
+
       {/* Grid: Gate Activity + Quick Department Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Live Gate Feed Widget */}
@@ -196,34 +290,34 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
           <h3 className="font-bold text-slate-900 text-sm flex items-center space-x-2">
             <Zap className="w-4 h-4 text-amber-500" />
-            <span>Institute Shortcuts & Advanced Tools</span>
+            <span>Core Navigation Shortcuts</span>
           </h3>
 
           <div className="space-y-2 text-xs">
             <button
-              onClick={() => onNavigateTab('ai_assistant')}
-              className="w-full p-3 rounded-xl bg-gradient-to-r from-indigo-900 to-purple-900 hover:from-indigo-800 text-white font-bold text-left shadow-md transition-all flex justify-between items-center"
-            >
-              <span className="flex items-center space-x-2">
-                <Bot className="w-4 h-4 text-amber-300 animate-pulse" />
-                <span>AI Risk & Notice Assistant</span>
-              </span>
-              <ChevronRight className="w-4 h-4 text-indigo-300" />
-            </button>
-
-            <button
-              onClick={() => onNavigateTab('guardian_portal')}
+              onClick={() => onNavigateTab('students_directory')}
               className="w-full p-3 rounded-xl bg-slate-50 hover:bg-purple-50 text-slate-800 font-semibold text-left border border-slate-200 transition-all flex justify-between items-center"
             >
               <span className="flex items-center space-x-2">
                 <Users className="w-4 h-4 text-purple-600" />
-                <span>Guardian Portal & Fee Pay</span>
+                <span>Students Directory & ID Cards</span>
               </span>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
 
             <button
-              onClick={() => onNavigateTab('notices_events')}
+              onClick={() => onNavigateTab('faculty_directory')}
+              className="w-full p-3 rounded-xl bg-slate-50 hover:bg-indigo-50 text-slate-800 font-semibold text-left border border-slate-200 transition-all flex justify-between items-center"
+            >
+              <span className="flex items-center space-x-2">
+                <Users className="w-4 h-4 text-indigo-600" />
+                <span>Faculty & Teachers Directory</span>
+              </span>
+              <ChevronRight className="w-4 h-4 text-slate-400" />
+            </button>
+
+            <button
+              onClick={() => onNavigateTab('notices_attendance')}
               className="w-full p-3 rounded-xl bg-slate-50 hover:bg-sky-50 text-slate-800 font-semibold text-left border border-slate-200 transition-all flex justify-between items-center"
             >
               <span className="flex items-center space-x-2">
@@ -234,29 +328,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </button>
 
             <button
-              onClick={() => onNavigateTab('audit_logs')}
-              className="w-full p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-800 font-semibold text-left border border-slate-200 transition-all flex justify-between items-center"
+              onClick={() => onNavigateTab('blood_donors')}
+              className="w-full p-3 rounded-xl bg-slate-50 hover:bg-rose-50 text-slate-800 font-semibold text-left border border-slate-200 transition-all flex justify-between items-center"
             >
               <span className="flex items-center space-x-2">
-                <FileCheck className="w-4 h-4 text-slate-600" />
-                <span>Immutable Security Audit Logs</span>
+                <Droplet className="w-4 h-4 text-rose-600 fill-rose-600" />
+                <span>RTI Blood Donation Club & Donors</span>
               </span>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            </button>
-
-            <button
-              onClick={() => onNavigateTab('wet_processing')}
-              className="w-full p-3 rounded-xl bg-slate-50 hover:bg-sky-50 text-slate-800 font-semibold text-left border border-slate-200 transition-all flex justify-between items-center"
-            >
-              <span>🧪 Form: New Dyeing Recipe Batch</span>
-              <ChevronRight className="w-4 h-4 text-slate-400" />
-            </button>
-
-            <button
-              onClick={() => onNavigateTab('yarn_mfg')}
-              className="w-full p-3 rounded-xl bg-slate-50 hover:bg-purple-50 text-slate-800 font-semibold text-left border border-slate-200 transition-all flex justify-between items-center"
-            >
-              <span>🧵 Form: Log Yarn Count Quality Test</span>
               <ChevronRight className="w-4 h-4 text-slate-400" />
             </button>
           </div>

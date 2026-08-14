@@ -20,6 +20,7 @@ import {
   Video,
   Home,
   Heart,
+  Droplet,
   Briefcase,
   Layers,
   LogOut,
@@ -27,7 +28,13 @@ import {
   Mail,
   Key,
   Lock,
-  Edit3
+  Edit3,
+  X,
+  Sun,
+  Moon,
+  Menu,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -42,9 +49,14 @@ interface HeaderProps {
   // Dynamic Admin & Auth Props
   designatedAdminEmail?: string;
   onUpdateAdminEmail?: (newEmail: string) => void;
+  adminSecurityPin?: string;
+  onUpdateAdminPin?: (newPin: string) => void;
+  onSetupAdminCredentials?: (email: string, pin: string) => { success: boolean; message: string };
   currentUser?: { email: string | null; name: string; role: string; isLoggedIn: boolean };
-  onLogin?: (email: string, claimAsAdmin?: boolean) => void;
+  onLogin?: (email: string, claimAsAdmin?: boolean, pin?: string) => { success: boolean; message: string };
   onLogout?: () => void;
+  theme?: 'dark' | 'light';
+  onToggleTheme?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -56,26 +68,44 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveRole,
   activeGateCount,
   onRegisterMember,
-  designatedAdminEmail = 'dhdrt581@gmail.com',
+  designatedAdminEmail = '',
   onUpdateAdminEmail = (_newEmail: string) => {},
-  currentUser = { email: 'dhdrt581@gmail.com', name: 'Main Admin', role: 'Super Admin', isLoggedIn: true },
-  onLogin = (_email: string, _claimAsAdmin?: boolean) => {},
-  onLogout = () => {}
+  adminSecurityPin = '',
+  onUpdateAdminPin = (_newPin: string) => {},
+  onSetupAdminCredentials = (_email: string, _pin: string) => ({ success: false, message: '' }),
+  currentUser = { email: null, name: 'Guest Visitor', role: 'Student', isLoggedIn: false },
+  onLogin = (_email: string, _claimAsAdmin?: boolean, _pin?: string) => ({ success: false, message: '' }),
+  onLogout = () => {},
+  theme = 'dark',
+  onToggleTheme = () => {}
 }) => {
-  // Google Auth & Admin Verification State
+  // Google Auth & Admin Verification State (Default: false - hidden until user clicks Sign In)
   const [showGoogleModal, setShowGoogleModal] = React.useState(false);
-  const [googleEmail, setGoogleEmail] = React.useState(currentUser?.email || designatedAdminEmail);
+  const [googleEmail, setGoogleEmail] = React.useState(currentUser?.email || designatedAdminEmail || '');
+  const [adminPinInput, setAdminPinInput] = React.useState('');
   const [newAdminEmailInput, setNewAdminEmailInput] = React.useState('');
+  const [newAdminPinSetting, setNewAdminPinSetting] = React.useState('');
 
-  // Sync googleEmail when currentUser changes
+  // Setup mode state for first-time or re-configuration
+  const [isSetupMode, setIsSetupMode] = React.useState(false);
+  const [setupEmailInput, setSetupEmailInput] = React.useState('');
+  const [setupPinInput, setSetupPinInput] = React.useState('');
+  const [setupPinConfirmInput, setSetupPinConfirmInput] = React.useState('');
+
+  // Sync googleEmail when currentUser or designatedAdminEmail changes
   React.useEffect(() => {
     if (currentUser?.email) {
       setGoogleEmail(currentUser.email);
+    } else if (designatedAdminEmail) {
+      setGoogleEmail(designatedAdminEmail);
     }
-  }, [currentUser?.email]);
+  }, [currentUser?.email, designatedAdminEmail]);
 
   // Auth Toast Notification State
   const [authNotification, setAuthNotification] = React.useState<{ type: 'SUCCESS' | 'WARNING' | 'INFO'; msg: string } | null>(null);
+
+  // Mobile navigation drawer toggle
+  const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
 
   // Self Registration State
   const [showSelfRegModal, setShowSelfRegModal] = React.useState(false);
@@ -118,41 +148,84 @@ export const Header: React.FC<HeaderProps> = ({
     setShowSelfRegModal(true);
   };
 
-  const handleSignInAsUser = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanEmail = googleEmail.trim().toLowerCase();
-    if (!cleanEmail.includes('@')) {
-      alert('Please enter a valid Gmail address.');
+  const handleSignInAsUser = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (!designatedAdminEmail) {
+      setIsSetupMode(true);
+      setAuthNotification({
+        type: 'INFO',
+        msg: '⚙️ Main Admin account is not yet configured. Please set your Admin Gmail and Password below.'
+      });
       return;
     }
-    onLogin(cleanEmail, false);
-    setShowGoogleModal(false);
+
+    const cleanEmail = googleEmail.trim().toLowerCase();
     
-    if (cleanEmail === designatedAdminEmail.trim().toLowerCase()) {
+    if (cleanEmail !== designatedAdminEmail.trim().toLowerCase()) {
+      setAuthNotification({
+        type: 'WARNING',
+        msg: `⛔ Authorization Denied: Main Admin Login strictly requires the configured admin email (${designatedAdminEmail}).`
+      });
+      return;
+    }
+
+    if (!adminPinInput.trim()) {
+      setAuthNotification({
+        type: 'WARNING',
+        msg: '🔒 Admin Security Password is required to log in as Main Admin!'
+      });
+      return;
+    }
+
+    const res = onLogin(designatedAdminEmail, false, adminPinInput);
+    if (res.success) {
+      setShowGoogleModal(false);
+      setAdminPinInput('');
       setAuthNotification({
         type: 'SUCCESS',
-        msg: `Main Admin Login Successful for '${cleanEmail}'! Full Master Control enabled.`
+        msg: res.message
       });
     } else {
       setAuthNotification({
-        type: 'INFO',
-        msg: `Signed in as Regular User '${cleanEmail}'. Master Admin features are locked to designated admin (${designatedAdminEmail}).`
+        type: 'WARNING',
+        msg: res.message
       });
     }
   };
 
-  const handleClaimAdmin = () => {
-    const cleanEmail = googleEmail.trim().toLowerCase();
-    if (!cleanEmail.includes('@')) {
-      alert('Please enter a valid Gmail address to claim as Main Admin.');
+  const handleSaveAdminSetup = (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = setupEmailInput.trim().toLowerCase();
+    const cleanPin = setupPinInput.trim();
+
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      alert('Please enter a valid Gmail address.');
       return;
     }
-    onLogin(cleanEmail, true);
-    setShowGoogleModal(false);
-    setAuthNotification({
-      type: 'SUCCESS',
-      msg: `👑 '${cleanEmail}' has claimed and registered as the new Main Admin! Master Control unlocked.`
-    });
+    if (!cleanPin || cleanPin.length < 4) {
+      alert('Admin Security Password must be at least 4 characters long.');
+      return;
+    }
+    if (cleanPin !== setupPinConfirmInput.trim()) {
+      alert('Security Passwords do not match! Please verify.');
+      return;
+    }
+
+    const res = onSetupAdminCredentials(cleanEmail, cleanPin);
+    if (res.success) {
+      setShowGoogleModal(false);
+      setIsSetupMode(false);
+      setSetupEmailInput('');
+      setSetupPinInput('');
+      setSetupPinConfirmInput('');
+      setAuthNotification({
+        type: 'SUCCESS',
+        msg: res.message
+      });
+    } else {
+      alert(res.message);
+    }
   };
 
   const handleUpdateDesignatedAdminSubmit = (e: React.FormEvent) => {
@@ -244,156 +317,124 @@ export const Header: React.FC<HeaderProps> = ({
   return (
     <header className="bg-slate-900 border-b border-indigo-900/60 text-white sticky top-0 z-40 shadow-xl backdrop-blur-md">
       {/* Top Utility & Institute Branding Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-3">
         {/* Brand Logo & Name */}
-        <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-sky-400 p-0.5 shadow-lg shadow-purple-500/20">
+        <div className="flex items-center space-x-2.5 sm:space-x-3 cursor-pointer min-w-0" onClick={() => setActiveTab('dashboard')}>
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-sky-400 p-0.5 shadow-lg shadow-purple-500/20 flex-shrink-0">
             <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-              <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-sky-300 text-lg">
+              <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-sky-300 text-base sm:text-lg">
                 RTI
               </span>
             </div>
           </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h1 className="text-xl font-black tracking-wider text-white font-mono">
-                RANGPUR TEXTILE
+          <div className="min-w-0">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 flex-wrap">
+              <h1 className="text-xs sm:text-base md:text-lg font-black tracking-wide text-white font-mono truncate">
+                Rangpur Textile Institute
               </h1>
-              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-purple-500/20 text-purple-300 rounded border border-purple-500/30">
+              <span className="px-1.5 sm:px-2 py-0.5 text-[9px] sm:text-[10px] font-bold uppercase tracking-widest bg-purple-500/20 text-purple-300 rounded border border-purple-500/30 whitespace-nowrap">
                 RTI OS v5.0
               </span>
             </div>
-            <p className="text-xs text-purple-200/80 font-medium">
-              Rangpur Textile Institute Management System
+            <p className="text-[10px] sm:text-xs text-purple-200/80 font-medium truncate hidden xs:block sm:block">
+              Central Academic, Directory & Attendance Management
             </p>
           </div>
         </div>
 
-        {/* Role-Based Selector, Google Auth & Master Admin Toggle */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        {/* User Session, Admin Controls & Mobile Menu Toggle */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 flex-shrink-0">
           {/* Public Self-Registration / Sign Up Button */}
           <button
             onClick={handleOpenSelfReg}
-            className="px-3.5 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-white border border-purple-400/50 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 shadow-sm shadow-purple-500/20"
+            className="px-2.5 sm:px-3.5 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-white border border-purple-400/50 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center space-x-1 sm:space-x-1.5 shadow-sm shadow-purple-500/20 cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-300 animate-spin" />
-            <span>Sign Up / Register</span>
+            <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+            <span className="hidden sm:inline">Sign Up / Register</span>
+            <span className="sm:hidden">Register</span>
           </button>
 
           {/* User Session Status & Log Out Button */}
           {currentUser.isLoggedIn ? (
-            <div className="flex items-center space-x-2 bg-slate-950/90 px-3 py-1.5 rounded-xl border border-slate-800 text-xs shadow-sm">
+            <div className="flex items-center space-x-1.5 sm:space-x-2 bg-slate-950/90 px-2 sm:px-3 py-1.5 rounded-xl border border-slate-800 text-xs shadow-sm">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-              <span className="font-mono text-slate-200 text-[11px] font-bold truncate max-w-[150px]" title={currentUser.email || ''}>
+              <span className="font-mono text-slate-200 text-[10px] sm:text-[11px] font-bold truncate max-w-[90px] sm:max-w-[150px]" title={currentUser.email || ''}>
                 {currentUser.email}
               </span>
-              <span className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${
-                isMasterAdmin ? 'bg-purple-500/30 text-purple-200 border border-purple-400/30' : 'bg-slate-800 text-slate-300'
-              }`}>
-                {isMasterAdmin ? 'ADMIN' : 'USER'}
-              </span>
+              {isMasterAdmin && (
+                <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-extrabold uppercase bg-purple-500/30 text-purple-200 border border-purple-400/30 hidden md:inline">
+                  MAIN ADMIN
+                </span>
+              )}
               <button
                 onClick={() => {
                   onLogout();
                   setAuthNotification({
                     type: 'INFO',
-                    msg: 'Logged out successfully. Switched to Guest / Student mode.'
+                    msg: 'Logged out successfully.'
                   });
                 }}
-                className="ml-1 px-2 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/60 font-bold transition-all flex items-center space-x-1"
+                className="ml-0.5 sm:ml-1 px-1.5 sm:px-2 py-1 rounded-lg bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800/60 font-bold transition-all flex items-center space-x-1 cursor-pointer"
                 title="Log Out"
               >
                 <LogOut className="w-3.5 h-3.5 text-rose-400" />
-                <span className="text-[10px] font-extrabold">Log Out</span>
+                <span className="text-[9px] sm:text-[10px] font-extrabold hidden sm:inline">Log Out</span>
               </button>
             </div>
           ) : (
             <button
               onClick={() => setShowGoogleModal(true)}
-              className="px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 shadow-sm"
+              className="px-2.5 sm:px-3.5 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center space-x-1 sm:space-x-1.5 shadow-sm cursor-pointer"
             >
               <LogIn className="w-3.5 h-3.5 text-blue-200" />
-              <span>Sign In / Claim Admin</span>
+              <span>Log In</span>
             </button>
           )}
 
-          {/* Main Admin Setup / Auth Modal Trigger */}
+          {/* Master Admin Portal Trigger */}
+          {(!currentUser.isLoggedIn || isMasterAdmin) && (
+            <button
+              onClick={() => setShowGoogleModal(true)}
+              className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-extrabold transition-all flex items-center space-x-1 sm:space-x-1.5 border cursor-pointer ${
+                isMasterAdmin
+                  ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 shadow-md shadow-emerald-500/20'
+                  : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700'
+              }`}
+              title="Admin Verification Portal"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400" />
+              <span className="hidden sm:inline">{isMasterAdmin ? 'Admin Verified' : 'Admin Login'}</span>
+              <span className="sm:hidden">{isMasterAdmin ? 'Admin' : 'Admin'}</span>
+            </button>
+          )}
+
+          {/* Theme Switcher Toggle */}
           <button
-            onClick={() => setShowGoogleModal(true)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center space-x-1.5 border ${
-              isMasterAdmin
-                ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/50 shadow-md shadow-emerald-500/20'
-                : 'bg-slate-900 hover:bg-slate-800 text-slate-200 border-slate-700'
-            }`}
-            title="Manage Login & Admin Setup"
+            onClick={onToggleTheme}
+            className="p-1.5 sm:p-2 rounded-xl bg-slate-950/90 hover:bg-slate-800 text-amber-300 hover:text-amber-200 border border-slate-800 transition-all shadow-xs flex items-center justify-center cursor-pointer"
+            title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+            aria-label="Toggle Dark/Light Mode"
           >
-            <span className="font-mono text-xs font-black text-blue-300 bg-slate-950/80 px-1.5 py-0.5 rounded border border-blue-400/30">G</span>
-            <span>{isMasterAdmin ? 'Main Admin Verified' : 'Admin Setup'}</span>
+            {theme === 'dark' ? (
+              <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-300" />
+            )}
           </button>
 
-          {/* Active Role Selector */}
-          <div className="flex items-center space-x-2 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs">
-            <UserCheck className="w-4 h-4 text-purple-400" />
-            <span className="text-slate-300 font-bold hidden sm:inline">Role:</span>
-            <select
-              value={activeRole}
-              onChange={(e) => setActiveRole(e.target.value)}
-              className="bg-transparent font-bold text-white text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="Super Admin" className="bg-slate-900 text-white">Super Admin</option>
-              <option value="Dept Admin" className="bg-slate-900 text-white">Dept Admin</option>
-              <option value="Teacher" className="bg-slate-900 text-white">Teacher / Faculty</option>
-              <option value="Student" className="bg-slate-900 text-white">Student</option>
-              <option value="Guardian" className="bg-slate-900 text-white">Guardian</option>
-              <option value="Staff" className="bg-slate-900 text-white">Staff Officer</option>
-              <option value="Security" className="bg-slate-900 text-white">Gate Security</option>
-            </select>
-          </div>
-
-          {/* Master Admin Switch */}
-          <div className={`p-1.5 rounded-2xl transition-all duration-300 flex items-center space-x-3 border ${
-            isMasterAdmin 
-              ? 'bg-gradient-to-r from-purple-950 via-indigo-900 to-slate-900 border-purple-500/50 shadow-lg shadow-purple-500/10 ring-1 ring-purple-500/30' 
-              : 'bg-slate-800/80 border-slate-700'
-          }`}>
-            <div className="flex items-center space-x-2 pl-2">
-              {isMasterAdmin ? (
-                <ShieldCheck className="w-5 h-5 text-purple-400 animate-bounce" />
-              ) : (
-                <ShieldAlert className="w-5 h-5 text-slate-400" />
-              )}
-              <div className="text-left">
-                <div className="text-xs font-bold text-slate-100 flex items-center space-x-1">
-                  <span>Master Control</span>
-                  {isMasterAdmin && (
-                    <span className="text-[9px] px-1.5 py-0.2 bg-purple-500 text-white font-extrabold rounded-full uppercase tracking-wider">
-                      FULL
-                    </span>
-                  )}
-                </div>
-                <div className="text-[10px] text-slate-400">
-                  {isMasterAdmin ? 'Full Override Active' : 'Standard Access'}
-                </div>
-              </div>
-            </div>
-
-            {/* Toggle Switch */}
-            <button
-              onClick={handleToggleMasterAdmin}
-              type="button"
-              id="master-admin-switch-btn"
-              aria-label="Toggle Master Admin Mode"
-              className={`relative inline-flex h-7 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 ${
-                isMasterAdmin ? 'bg-purple-600' : 'bg-slate-600'
-              }`}
-            >
-              <span
-                className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                  isMasterAdmin ? 'translate-x-7' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
+          {/* Mobile Menu Hamburger Toggle */}
+          <button
+            onClick={() => setMobileNavOpen(!mobileNavOpen)}
+            className="md:hidden p-1.5 sm:p-2 rounded-xl bg-purple-950/70 hover:bg-purple-900 text-purple-200 border border-purple-700/60 transition-all flex items-center justify-center cursor-pointer"
+            title="Toggle Navigation Menu"
+            aria-label="Toggle Menu"
+          >
+            {mobileNavOpen ? (
+              <X className="w-4 h-4 text-white" />
+            ) : (
+              <Menu className="w-4 h-4 text-purple-300" />
+            )}
+          </button>
         </div>
       </div>
 
@@ -413,7 +454,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <button
               onClick={() => setAuthNotification(null)}
-              className="ml-3 text-slate-400 hover:text-white font-black text-sm"
+              className="ml-3 text-slate-400 hover:text-white font-black text-sm cursor-pointer"
             >
               ✕
             </button>
@@ -421,309 +462,421 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       )}
 
-      {/* Main Core Navigation Bar */}
-      <div className="bg-slate-950 border-t border-slate-800/80 px-4 sm:px-6 lg:px-8 py-2">
-        <div className="max-w-7xl mx-auto space-y-2">
-          {/* Core Menu Navigation Tabs */}
-          <div className="flex items-center space-x-1.5 overflow-x-auto scrollbar-none pb-1 border-b border-slate-800/60">
-            {/* 1. Home (Overview Dashboard) */}
+      {/* Main Responsive Tab Bar with Touch Horizontal Scrolling */}
+      <div className="bg-slate-950 border-t border-slate-800/80 px-2 sm:px-6 lg:px-8 py-1.5 sm:py-2">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          {/* Scrollable Navigation Tabs (Touch-Friendly on Phone & Tablet) */}
+          <div className="flex items-center space-x-1.5 sm:space-x-2 overflow-x-auto scrollbar-none py-0.5 w-full md:w-auto scroll-smooth">
+            {/* Tab 1: Home */}
             <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+              onClick={() => {
+                setActiveTab('dashboard');
+                setMobileNavOpen(false);
+              }}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
                 activeTab === 'dashboard'
                   ? 'bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 text-white border-purple-400 shadow-md shadow-purple-600/30 ring-1 ring-white/20'
-                  : 'bg-slate-900 text-white hover:bg-slate-800/90 hover:text-white border-slate-700/80'
+                  : 'bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white border-slate-700/80'
               }`}
             >
-              <Home className="w-4 h-4 text-sky-400" />
-              <span className="text-white">Home (Overview)</span>
+              <Home className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-400" />
+              <span>Home</span>
             </button>
 
-            {/* 2. Admin Console (Master Control & Audit Logs - Admin Restricted) */}
+            {/* Tab 2: Students Directory */}
             <button
-              onClick={() => setActiveTab('admin_console')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
-                activeTab === 'admin_console' || activeTab === 'audit_logs'
-                  ? 'bg-gradient-to-r from-purple-700 via-indigo-700 to-slate-900 text-white border-purple-400 shadow-md shadow-purple-600/30 ring-1 ring-white/20'
-                  : 'bg-slate-900 text-white hover:bg-slate-800/90 hover:text-white border-slate-700/80'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-purple-400" />
-              <span className="text-white">Admin Console</span>
-              {isMasterAdmin ? (
-                <span className="px-1.5 py-0.5 text-[9px] bg-emerald-500/30 text-emerald-200 border border-emerald-400/30 rounded uppercase font-extrabold">Master</span>
-              ) : (
-                <Lock className="w-3 h-3 text-amber-400" />
-              )}
-            </button>
-
-            {/* 3. Students Directory */}
-            <button
-              onClick={() => setActiveTab('students_directory')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+              onClick={() => {
+                setActiveTab('students_directory');
+                setMobileNavOpen(false);
+              }}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
                 activeTab === 'students_directory'
                   ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-600 text-white border-indigo-400 shadow-md shadow-indigo-600/30 ring-1 ring-white/20'
-                  : 'bg-slate-900 text-white hover:bg-slate-800/90 hover:text-white border-slate-700/80'
+                  : 'bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white border-slate-700/80'
               }`}
             >
-              <GraduationCap className="w-4 h-4 text-sky-300" />
-              <span className="text-white">Students Directory</span>
+              <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-sky-300" />
+              <span>Students Directory</span>
             </button>
 
-            {/* 4. Faculty Directory */}
+            {/* Tab 3: Faculty Directory */}
             <button
-              onClick={() => setActiveTab('faculty_directory')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+              onClick={() => {
+                setActiveTab('faculty_directory');
+                setMobileNavOpen(false);
+              }}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
                 activeTab === 'faculty_directory'
                   ? 'bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 text-white border-violet-400 shadow-md shadow-violet-600/30 ring-1 ring-white/20'
-                  : 'bg-slate-900 text-white hover:bg-slate-800/90 hover:text-white border-slate-700/80'
+                  : 'bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white border-slate-700/80'
               }`}
             >
-              <Briefcase className="w-4 h-4 text-purple-300" />
-              <span className="text-white">Faculty Directory</span>
+              <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-300" />
+              <span>Faculty Directory</span>
             </button>
 
-            {/* 5. Red Crescent Unit */}
+            {/* Tab 4: Notice Board */}
             <button
-              onClick={() => setActiveTab('red_crescent')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
-                activeTab === 'red_crescent'
-                  ? 'bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600 text-white border-rose-400 shadow-md shadow-rose-600/30 ring-1 ring-white/20'
-                  : 'bg-slate-900 text-white hover:bg-slate-800/90 hover:text-white border-slate-700/80'
+              onClick={() => {
+                setActiveTab('notices_attendance');
+                setMobileNavOpen(false);
+              }}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                activeTab === 'notices_attendance' || activeTab === 'notices_events' || activeTab === 'qr_gate' || activeTab === 'dept_attendance'
+                  ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 text-white border-emerald-400 shadow-md shadow-emerald-600/30 ring-1 ring-white/20'
+                  : 'bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white border-slate-700/80'
               }`}
             >
-              <Heart className="w-4 h-4 text-rose-400 animate-pulse" />
-              <span className="text-white">Red Crescent Unit</span>
-            </button>
-
-            {/* 6. Departments Group Header */}
-            <div className="flex items-center space-x-1 pl-2 border-l border-slate-800">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-300 flex items-center space-x-1 pr-1">
-                <Layers className="w-3.5 h-3.5 text-purple-400" />
-                <span>Depts:</span>
-              </span>
-
-              <button
-                onClick={() => setActiveTab('wet_processing')}
-                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
-                  activeTab === 'wet_processing'
-                    ? 'bg-sky-600 text-white border-sky-400 shadow-md shadow-sky-600/30 ring-1 ring-white/20'
-                    : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-700'
-                }`}
-              >
-                <FlaskConical className="w-3.5 h-3.5 text-sky-400" />
-                <span>Wet Processing</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('yarn_mfg')}
-                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
-                  activeTab === 'yarn_mfg'
-                    ? 'bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-600/30 ring-1 ring-white/20'
-                    : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-700'
-                }`}
-              >
-                <Boxes className="w-3.5 h-3.5 text-purple-400" />
-                <span>Yarn Mfg</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('fabric_mfg')}
-                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
-                  activeTab === 'fabric_mfg'
-                    ? 'bg-violet-600 text-white border-violet-400 shadow-md shadow-violet-600/30 ring-1 ring-white/20'
-                    : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-700'
-                }`}
-              >
-                <Grid className="w-3.5 h-3.5 text-violet-400" />
-                <span>Fabric Mfg</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('apparel_mfg')}
-                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
-                  activeTab === 'apparel_mfg'
-                    ? 'bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/30 ring-1 ring-white/20'
-                    : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-700'
-                }`}
-              >
-                <Scissors className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Apparel Mfg</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Secondary Operational Quick Access Bar */}
-          <div className="flex items-center space-x-1 overflow-x-auto scrollbar-none pt-0.5">
-            <button
-              onClick={() => setActiveTab('qr_gate')}
-              className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all border ${
-                activeTab === 'qr_gate'
-                  ? 'bg-emerald-600 text-white border-emerald-400 shadow-sm'
-                  : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-800'
-              }`}
-            >
-              <QrCode className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Attendance & Gate Pass</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('notices_events')}
-              className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all border ${
-                activeTab === 'notices_events'
-                  ? 'bg-sky-600 text-white border-sky-400 shadow-sm'
-                  : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-800'
-              }`}
-            >
-              <FileText className="w-3.5 h-3.5 text-sky-400" />
+              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-300" />
               <span>Notice Board</span>
             </button>
 
+            {/* Tab 5: RTI Blood Donation Club / Blood Bank */}
             <button
-              onClick={() => setActiveTab('guardian_portal')}
-              className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all border ${
-                activeTab === 'guardian_portal'
-                  ? 'bg-purple-600 text-white border-purple-400 shadow-sm'
-                  : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-800'
+              onClick={() => {
+                setActiveTab('blood_donors');
+                setMobileNavOpen(false);
+              }}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                activeTab === 'blood_donors' || activeTab === 'blood_bank' || activeTab === 'red_crescent'
+                  ? 'bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white border-rose-400 shadow-md shadow-rose-600/30 ring-1 ring-white/20'
+                  : 'bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white border-slate-700/80'
               }`}
             >
-              <Users className="w-3.5 h-3.5 text-purple-300" />
-              <span>Guardian Portal</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('alumni_network')}
-              className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all border ${
-                activeTab === 'alumni_network'
-                  ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm'
-                  : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-800'
-              }`}
-            >
-              <GraduationCap className="w-3.5 h-3.5 text-indigo-300" />
-              <span>Alumni Network</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('cctv_surveillance')}
-              className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all border ${
-                activeTab === 'cctv_surveillance'
-                  ? 'bg-purple-600 text-white border-purple-400 shadow-sm'
-                  : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-800'
-              }`}
-            >
-              <Video className="w-3.5 h-3.5 text-purple-300" />
-              <span>CCTV Feeds</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('ai_assistant')}
-              className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all border ${
-                activeTab === 'ai_assistant'
-                  ? 'bg-violet-600 text-white border-violet-400 shadow-sm'
-                  : 'bg-slate-900 text-white hover:bg-slate-800 border-slate-800'
-              }`}
-            >
-              <Bot className="w-3.5 h-3.5 text-amber-300" />
-              <span>AI Operations Assistant</span>
+              <Droplet className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-rose-400 fill-rose-400" />
+              <span>Blood Donors</span>
             </button>
           </div>
+
+          {/* Admin Console Quick Button (Only when verified) */}
+          {isMasterAdmin && (
+            <div className="hidden md:flex items-center space-x-2">
+              <button
+                onClick={() => setActiveTab('admin_console')}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                  activeTab === 'admin_console' || activeTab === 'audit_logs'
+                    ? 'bg-purple-700 text-white border-purple-400 shadow-md shadow-purple-600/30'
+                    : 'bg-purple-950/60 text-purple-200 hover:bg-purple-900 border-purple-700/60'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-purple-300" />
+                <span>Admin Console</span>
+                <span className="px-1.5 py-0.2 text-[9px] bg-purple-500/30 rounded uppercase font-mono">Master</span>
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Mobile Navigation Dropdown Menu */}
+        {mobileNavOpen && (
+          <div className="md:hidden mt-2 pt-2 border-t border-slate-800 grid grid-cols-2 gap-1.5 pb-2 animate-fadeIn">
+            <button
+              onClick={() => {
+                setActiveTab('dashboard');
+                setMobileNavOpen(false);
+              }}
+              className="flex items-center space-x-2 p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-800"
+            >
+              <Home className="w-3.5 h-3.5 text-sky-400" />
+              <span>Dashboard Home</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('students_directory');
+                setMobileNavOpen(false);
+              }}
+              className="flex items-center space-x-2 p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-800"
+            >
+              <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Students Directory</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('faculty_directory');
+                setMobileNavOpen(false);
+              }}
+              className="flex items-center space-x-2 p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-800"
+            >
+              <Briefcase className="w-3.5 h-3.5 text-purple-400" />
+              <span>Faculty Directory</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('notices_attendance');
+                setMobileNavOpen(false);
+              }}
+              className="flex items-center space-x-2 p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-800"
+            >
+              <FileText className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Notice Board</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('blood_donors');
+                setMobileNavOpen(false);
+              }}
+              className="flex items-center space-x-2 p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-800"
+            >
+              <Droplet className="w-3.5 h-3.5 text-rose-400 fill-rose-400" />
+              <span>Blood Donation</span>
+            </button>
+            {isMasterAdmin ? (
+              <button
+                onClick={() => {
+                  setActiveTab('admin_console');
+                  setMobileNavOpen(false);
+                }}
+                className="flex items-center space-x-2 p-2 rounded-xl bg-purple-900/60 hover:bg-purple-800 text-purple-200 text-xs font-bold border border-purple-600/50"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
+                <span>Admin Console</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setShowGoogleModal(true);
+                  setMobileNavOpen(false);
+                }}
+                className="flex items-center space-x-2 p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-800"
+              >
+                <Lock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Admin Setup</span>
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* GOOGLE GMAIL ADMIN OAUTH & CLAIM MODAL */}
       {showGoogleModal && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 text-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-700/80 space-y-5">
+        <div 
+          onClick={() => {
+            setShowGoogleModal(false);
+            setIsSetupMode(false);
+          }}
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 text-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-700/80 space-y-4 sm:space-y-5 relative max-h-[90vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-blue-600/20 border border-blue-400/50 flex items-center justify-center font-bold text-blue-400 font-mono text-base">
-                  G
+                <div className="w-8 h-8 rounded-full bg-purple-600/20 border border-purple-400/50 flex items-center justify-center font-bold text-purple-400 font-mono text-base">
+                  RTI
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm text-white">Google Auth & Admin Access</h3>
-                  <p className="text-[11px] text-slate-400">Sign in as User or Claim Main Admin Privileges</p>
+                  <h3 className="font-extrabold text-sm text-white">System Sign In & Access Control</h3>
+                  <p className="text-[11px] text-slate-400">Main Admin Login or Student Quick Access</p>
                 </div>
               </div>
               <button
-                onClick={() => setShowGoogleModal(false)}
-                className="text-slate-400 hover:text-white font-bold text-lg"
+                type="button"
+                id="close-admin-auth-modal-btn"
+                onClick={() => {
+                  setShowGoogleModal(false);
+                  setIsSetupMode(false);
+                }}
+                className="w-9 h-9 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center font-bold text-sm transition-all cursor-pointer shadow-md"
+                title="Close setup modal"
+                aria-label="Close"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-3.5 bg-blue-950/60 border border-blue-500/40 rounded-2xl text-blue-200 space-y-1.5 text-xs">
+            <div className="p-3.5 bg-purple-950/60 border border-purple-500/40 rounded-2xl text-purple-200 space-y-1.5 text-xs">
               <div className="font-bold text-white flex items-center justify-between">
                 <span className="flex items-center space-x-1.5">
-                  <ShieldCheck className="w-4 h-4 text-blue-400" />
-                  <span>Designated Main Admin Email</span>
+                  <ShieldCheck className="w-4 h-4 text-purple-400" />
+                  <span>Main Admin Account Status</span>
                 </span>
                 <span className="font-mono text-[11px] text-amber-300 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/30 font-bold">
-                  {designatedAdminEmail}
+                  {designatedAdminEmail || 'Not Configured (Setup Required)'}
                 </span>
               </div>
-              <p className="text-[11px] text-blue-200/90 leading-relaxed">
-                Only the designated Main Admin Gmail account has full access to Master Control, Admin Console, and Data Editing. Any new user can claim or register as Main Admin below.
+              <p className="text-[11px] text-purple-200/90 leading-relaxed">
+                {designatedAdminEmail
+                  ? `Only ${designatedAdminEmail} with valid Admin Password can access Master Controls.`
+                  : 'No Main Admin has been set up yet. Use the setup form below to configure the Main Admin Gmail and Password.'}
               </p>
             </div>
 
-            <form onSubmit={handleSignInAsUser} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-slate-200 font-bold mb-1.5">Enter Gmail Address *</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+            {(!designatedAdminEmail || isSetupMode) ? (
+              <form onSubmit={handleSaveAdminSetup} className="space-y-4 text-xs">
+                <div className="p-3 bg-indigo-950/50 border border-indigo-500/40 rounded-2xl space-y-1 text-indigo-200">
+                  <h4 className="font-extrabold text-white text-xs flex items-center space-x-1.5">
+                    <Key className="w-4 h-4 text-amber-300" />
+                    <span>Initial Main Admin Setup</span>
+                  </h4>
+                  <p className="text-[11px]">Set the official Admin Gmail address and Master Password for RTI Management System.</p>
+                </div>
+
+                <div>
+                  <label className="block text-slate-200 font-bold mb-1">New Main Admin Gmail Address *</label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      value={setupEmailInput}
+                      onChange={(e) => setSetupEmailInput(e.target.value)}
+                      placeholder="e.g. admin.rti@gmail.com"
+                      className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder:text-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-amber-200 font-bold mb-1">Admin Password *</label>
+                    <input
+                      type="password"
+                      required
+                      value={setupPinInput}
+                      onChange={(e) => setSetupPinInput(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3 py-2.5 bg-slate-950 border border-amber-500/50 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-amber-200 font-bold mb-1">Confirm Password *</label>
+                    <input
+                      type="password"
+                      required
+                      value={setupPinConfirmInput}
+                      onChange={(e) => setSetupPinConfirmInput(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full px-3 py-2.5 bg-slate-950 border border-amber-500/50 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSetupMode(false);
+                      setShowGoogleModal(false);
+                    }}
+                    className="px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold rounded-xl text-xs border border-slate-700 transition-colors"
+                  >
+                    Cancel & Close
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-2 transition-transform active:scale-95 cursor-pointer"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-amber-300" />
+                    <span>Save Main Admin Credentials</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleSignInAsUser} className="space-y-4 text-xs">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-slate-200 font-bold">Official Main Admin Gmail Address *</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsSetupMode(true)}
+                      className="text-[10px] text-purple-400 hover:text-purple-300 font-bold underline"
+                    >
+                      Re-configure Admin Email
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      value={googleEmail}
+                      onChange={(e) => setGoogleEmail(e.target.value)}
+                      placeholder={designatedAdminEmail}
+                      className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder:text-slate-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-950/40 border border-amber-500/40 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-amber-200 font-bold flex items-center space-x-1.5">
+                      <Lock className="w-4 h-4 text-amber-400" />
+                      <span>Admin Security Password *</span>
+                    </label>
+                  </div>
                   <input
-                    type="email"
+                    type="password"
                     required
-                    value={googleEmail}
-                    onChange={(e) => setGoogleEmail(e.target.value)}
-                    placeholder="e.g. user@gmail.com or admin@rangpurtextile.edu.bd"
-                    className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder:text-slate-500"
+                    value={adminPinInput}
+                    onChange={(e) => setAdminPinInput(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-3 py-2.5 bg-slate-950 border border-amber-500/50 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-500"
                   />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                <button
-                  type="submit"
-                  className="w-full py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs border border-slate-700 flex items-center justify-center space-x-1.5"
-                >
-                  <UserCheck className="w-4 h-4 text-sky-400" />
-                  <span>Sign In as User / Student</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleClaimAdmin}
-                  className="w-full py-2.5 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-md shadow-purple-600/30 flex items-center justify-center space-x-1.5"
-                >
-                  <Key className="w-4 h-4 text-amber-300" />
-                  <span>Claim / Set as Main Admin</span>
-                </button>
-              </div>
-            </form>
-
-            {/* If logged in as Admin, allow changing designated Admin email dynamically */}
-            {isMasterAdmin && (
-              <div className="pt-3 border-t border-slate-800 space-y-2">
-                <div className="text-xs font-bold text-purple-300 flex items-center space-x-1.5">
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Update Designated Admin Gmail Dynamically</span>
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowGoogleModal(false)}
+                    className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold rounded-xl text-xs border border-slate-700 transition-colors"
+                  >
+                    Cancel & Close
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-lg shadow-purple-600/30 flex items-center justify-center space-x-2 transition-transform active:scale-95 cursor-pointer"
+                  >
+                    <UserCheck className="w-4 h-4 text-amber-300" />
+                    <span>Log In as Main Admin</span>
+                  </button>
                 </div>
-                <form onSubmit={handleUpdateDesignatedAdminSubmit} className="flex gap-2">
+
+                <div className="text-center pt-2 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowGoogleModal(false);
+                      handleOpenSelfReg();
+                    }}
+                    className="text-purple-400 hover:text-purple-300 font-bold text-xs underline underline-offset-4"
+                  >
+                    Student, Teacher or Staff? Click here for Department Sign Up →
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* If logged in as Admin, allow changing Admin Security PIN */}
+            {isMasterAdmin && (
+              <div className="pt-3 border-t border-slate-800 space-y-3">
+                <div className="text-xs font-bold text-amber-300 flex items-center space-x-1.5">
+                  <Key className="w-3.5 h-3.5" />
+                  <span>Update Main Admin Security PIN</span>
+                </div>
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!newAdminPinSetting.trim()) return;
+                  onUpdateAdminPin(newAdminPinSetting.trim());
+                  setNewAdminPinSetting('');
+                  setAuthNotification({
+                    type: 'SUCCESS',
+                    msg: 'Admin Security PIN updated successfully!'
+                  });
+                }} className="flex gap-2">
                   <input
-                    type="email"
+                    type="password"
                     required
-                    value={newAdminEmailInput}
-                    onChange={(e) => setNewAdminEmailInput(e.target.value)}
-                    placeholder="New admin Gmail..."
+                    value={newAdminPinSetting}
+                    onChange={(e) => setNewAdminPinSetting(e.target.value)}
+                    placeholder="New Security PIN..."
                     className="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs font-mono font-bold focus:outline-none focus:ring-1 focus:ring-purple-500"
                   />
                   <button
                     type="submit"
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs whitespace-nowrap shadow"
+                    className="px-3.5 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl text-xs whitespace-nowrap shadow"
                   >
-                    Update
+                    Update PIN
                   </button>
                 </form>
               </div>
@@ -734,18 +887,28 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* PUBLIC SELF REGISTRATION / GENERAL USER SIGNUP MODAL */}
       {showSelfRegModal && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 text-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-700/80 space-y-4">
+        <div 
+          onClick={() => setShowSelfRegModal(false)}
+          className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 text-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-700/80 space-y-4 relative max-h-[90vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
                 <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />
                 <h3 className="font-extrabold text-base text-white">General User Signup & Self-Registration</h3>
               </div>
               <button
+                type="button"
+                id="close-self-reg-modal-btn"
                 onClick={() => setShowSelfRegModal(false)}
-                className="text-slate-400 hover:text-white font-bold text-lg"
+                className="w-9 h-9 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center font-bold text-sm transition-all cursor-pointer shadow-md"
+                title="Close registration modal"
+                aria-label="Close"
               >
-                ✕
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -822,13 +985,61 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-slate-200 font-bold mb-1">Phone Number *</label>
+                  <label className="block text-slate-200 font-bold mb-1">
+                    {regForm.role === 'Student' ? 'Academic Session / Batch *' : 'Designation *'}
+                  </label>
+                  {regForm.role === 'Student' ? (
+                    <select
+                      value={regForm.batchOrDesignation || 'Session 2022-23'}
+                      onChange={(e) => setRegForm({ ...regForm, batchOrDesignation: e.target.value })}
+                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    >
+                      <option value="Session 2020-21">Session 2020-21</option>
+                      <option value="Session 2021-22">Session 2021-22</option>
+                      <option value="Session 2022-23">Session 2022-23</option>
+                      <option value="Session 2023-24">Session 2023-24</option>
+                      <option value="Session 2024-25">Session 2024-25</option>
+                      <option value="Session 2025-26">Session 2025-26</option>
+                      <option value="Session 2026-27">Session 2026-27</option>
+                      <option value="Session 2027-28">Session 2027-28</option>
+                      <option value="Session 2028-29">Session 2028-29</option>
+                      <option value="Session 2029-30">Session 2029-30</option>
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={regForm.batchOrDesignation}
+                      onChange={(e) => setRegForm({ ...regForm, batchOrDesignation: e.target.value })}
+                      placeholder="e.g. Assistant Professor / Lecturer"
+                      className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-bold focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder:text-slate-500"
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-200 font-bold mb-1">Mobile Number *</label>
                   <input
                     type="tel"
                     required
                     value={regForm.phone}
                     onChange={(e) => setRegForm({ ...regForm, phone: e.target.value })}
                     placeholder="+880 1711-000000"
+                    className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder:text-slate-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-200 font-bold mb-1">
+                    {regForm.role === 'Student' ? 'Guardian Mobile (SMS Alerts) *' : 'Emergency Contact'}
+                  </label>
+                  <input
+                    type="tel"
+                    required={regForm.role === 'Student'}
+                    value={regForm.guardianPhone}
+                    onChange={(e) => setRegForm({ ...regForm, guardianPhone: e.target.value })}
+                    placeholder="+880 1700-000000"
                     className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder:text-slate-500"
                   />
                 </div>

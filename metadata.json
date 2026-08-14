@@ -1,6 +1,6 @@
 {
-  "name": "NIOTRON",
-  "description": "NIOTRON Textile Institute Management System with Master Admin controls, 4 Academic Departments, QR Attendance Gate, AI Assistant Widget, Guardian Portal, Immutable Audit Logs, and Digital Notice Board.",
-  "requestFramePermissions": ["camera"],
+  "name": "Rangpur Textile Institute Management System",
+  "description": "Official Rangpur Textile Institute Management System (RTI OS v5.0) featuring Students & Faculty Directories, Digital Notice Board, Attendance Management, and Administration.",
+  "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

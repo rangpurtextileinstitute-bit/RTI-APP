@@ -52,7 +52,7 @@ export const ApparelDept: React.FC<ApparelDeptProps> = ({
 
   // New Sewing Line State
   const [lineNo, setLineNo] = useState(`LINE-0${Math.floor(2 + Math.random() * 6)}`);
-  const [styleName, setStyleName] = useState('NIOTRON Athletic Crewneck');
+  const [styleName, setStyleName] = useState('RTI Athletic Crewneck');
   const [garmentType, setGarmentType] = useState<SewingLineRecord['garmentType']>('T-Shirt');
   const [samMinutes, setSamMinutes] = useState(12.5);
   const [operatorCount, setOperatorCount] = useState(24);
@@ -63,7 +63,7 @@ export const ApparelDept: React.FC<ApparelDeptProps> = ({
   const [supervisor, setSupervisor] = useState('Engr. Apparel Production Supt');
 
   // New Tech Pack State
-  const [styleCode, setStyleCode] = useState(`NIO-2026-${Math.floor(100 + Math.random() * 900)}`);
+  const [styleCode, setStyleCode] = useState(`RTI-2026-${Math.floor(100 + Math.random() * 900)}`);
   const [buyer, setBuyer] = useState('International Outerwear');
   const [season, setSeason] = useState<TechPackRecord['season']>('SS2026');
   const [tpGarmentType, setTpGarmentType] = useState('Performance Softshell');
@@ -467,8 +467,8 @@ export const ApparelDept: React.FC<ApparelDeptProps> = ({
 
       {/* FORM MODAL 1: Sewing Line Record */}
       {showSewingModal && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-lg w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
                 <Scissors className="w-5 h-5 text-blue-600" />
@@ -585,8 +585,8 @@ export const ApparelDept: React.FC<ApparelDeptProps> = ({
 
       {/* FORM MODAL 2: Create Tech Pack */}
       {showTechPackModal && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-md w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
                 <FileCheck className="w-5 h-5 text-blue-600" />

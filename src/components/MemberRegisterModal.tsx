@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, Sparkles, QrCode, Camera } from 'lucide-react';
+import { UserPlus, Sparkles, QrCode, Camera, X } from 'lucide-react';
 import { RegisteredMember, DepartmentType } from '../types';
 
 interface MemberRegisterModalProps {
@@ -67,14 +67,27 @@ export const MemberRegisterModal: React.FC<MemberRegisterModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="bg-slate-900 rounded-2xl border border-purple-500/40 max-w-lg w-full p-6 shadow-2xl text-white">
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+    >
+      <div 
+        onClick={e => e.stopPropagation()}
+        className="bg-slate-900 rounded-2xl sm:rounded-3xl border border-purple-500/40 max-w-lg w-full p-4 sm:p-6 shadow-2xl text-white relative max-h-[90vh] overflow-y-auto"
+      >
         <div className="flex items-center justify-between pb-4 border-b border-slate-800">
           <h3 className="text-lg font-bold text-white flex items-center space-x-2">
             <UserPlus className="w-5 h-5 text-purple-400" />
             <span>Register Member (Student, Teacher, Staff)</span>
           </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-white font-bold text-lg">✕</button>
+          <button 
+            type="button"
+            onClick={onClose} 
+            className="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center font-bold text-sm transition-all cursor-pointer shadow"
+            title="Close modal"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4 text-xs">

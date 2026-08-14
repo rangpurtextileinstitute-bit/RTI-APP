@@ -173,6 +173,14 @@ export interface RegisteredMember {
   semester?: string;
   officeHours?: string;
   assignedClasses?: string[];
+  gender?: 'Male' | 'Female' | 'Other';
+  // Placement & Internship
+  currentPlacement?: string; // e.g. "Executive Engineer at Beximco Textiles Ltd"
+  jobDesignation?: string;  // e.g. "Assistant Production Manager"
+  jobLocation?: string;     // e.g. "Gazipur, Dhaka"
+  internshipStatus?: 'Completed' | 'Ongoing' | 'Upcoming' | 'Not Started' | 'Seeking Placement' | string;
+  internshipCompany?: string; // e.g. "Square Fashions Ltd"
+  internshipDuration?: string; // e.g. "3 Months (Spring 2026)"
 }
 
 export interface AuditLog {
@@ -188,7 +196,7 @@ export interface AuditLog {
 export interface NoticeRecord {
   id: string;
   title: string;
-  category: 'Urgent' | 'Academic & Exams' | 'Fees & Dues' | 'Lab Safety' | 'Events & Workshops' | 'Hostel & Mess';
+  category: 'Urgent' | 'Academic & Exams' | 'Fees & Dues' | 'Lab Safety' | 'Events & Workshops' | 'Hostel & Mess' | 'General Notice' | 'Blood Donation & Health' | string;
   author: string;
   department: string;
   date: string;
@@ -260,20 +268,27 @@ export interface AlumniRecord {
   linkedinUrl?: string;
   mentorshipAvailable: boolean;
   achievements?: string;
+  placementType?: string;
+  internshipStatus?: string;
+  salaryBand?: string;
 }
 
-// Red Crescent Unit Member Record
+// Red Crescent & Blood Donation Club Member Record
 export interface RedCrescentMember {
   id: string;
   studentId: string;
   name: string;
   bloodGroup: 'A+' | 'A-' | 'B+' | 'B-' | 'O+' | 'O-' | 'AB+' | 'AB-';
   department: string;
+  batchOrSession?: string;
   phone: string;
-  roleInUnit: 'Volunteer' | 'Unit Leader' | 'Unit Team Lead' | 'First Aid Trainer' | 'First Aid Specialist' | 'Blood Donor Coordinator' | string;
+  location?: string;
+  roleInUnit: 'Volunteer' | 'Unit Leader' | 'Unit Team Lead' | 'First Aid Trainer' | 'First Aid Specialist' | 'Blood Donor Coordinator' | 'Blood Donor' | string;
   lastDonationDate?: string;
   totalDonations: number;
-  status: 'Active Volunteer' | 'Emergency On-Call';
+  status: 'Active Volunteer' | 'Emergency On-Call' | 'Available Donor' | 'Available Now' | 'In Cooldown';
+  availabilityStatus?: 'Available Now' | 'Emergency Only' | 'Cooldown / Recently Donated';
+  gender?: 'Male' | 'Female' | 'Other';
   photoUrl?: string;
   joinDate?: string;
 }
@@ -290,7 +305,9 @@ export interface InstituteMagazine {
   pdfUrl?: string;
   totalPages: number;
   featuredArticle: string;
-  coverBadgeColor: string;
+  coverBadgeColor?: string;
+  coverPhotoUrl?: string;
+  publishedDate?: string;
 }
 
 // Teacher / Staff Late Arrival Alert
@@ -330,5 +347,20 @@ export interface ConsecutiveAbsenceRecord {
   autoSmsStatus: 'DISPATCHED' | 'PENDING' | 'MANUAL_OVERRIDE';
   lastAbsentDate: string;
   alertSentTimestamp: string;
+}
+
+// Anonymous Safety Report / Complaint Box Record
+export interface SafetyReportComplaint {
+  id: string;
+  reportType: 'Harassment / Eve Teasing' | 'Hostel / Campus Safety' | 'Ragging / Bullying' | 'Academic Concern' | 'General Safety';
+  location: string;
+  incidentDate: string;
+  description: string;
+  urgency: 'Immediate Emergency' | 'High Priority' | 'Standard Review';
+  isAnonymous: boolean;
+  contactEmailOrPhone?: string; // Optional if student wants follow-up
+  status: 'Received' | 'Under Investigation' | 'Resolved' | 'Escalated to Proctor';
+  submittedAt: string;
+  adminNotes?: string;
 }
 

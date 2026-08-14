@@ -23,7 +23,12 @@ import {
   Printer,
   Sparkles,
   Edit3,
-  Trash2
+  Trash2,
+  Lock,
+  EyeOff,
+  HeartHandshake,
+  ShieldAlert,
+  Download
 } from 'lucide-react';
 import { RegisteredMember, StudentGradeRecord, StudentFeeStatus, DepartmentType } from '../types';
 import { CreditCard, DollarSign } from 'lucide-react';
@@ -58,6 +63,8 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
   initialRoleFilter = 'ALL'
 }) => {
   const [filterRole, setFilterRole] = useState<'ALL' | 'Student' | 'Faculty'>(initialRoleFilter);
+  const [filterSession, setFilterSession] = useState<string>('ALL');
+  const [filterStatus, setFilterStatus] = useState<'ALL' | 'Active' | 'Graduated'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Selected Profile Modal State
@@ -86,12 +93,41 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
   const [formEmail, setFormEmail] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formPhotoUrl, setFormPhotoUrl] = useState('');
+  const [formGender, setFormGender] = useState<'Male' | 'Female' | 'Other'>('Male');
   const [formBloodGroup, setFormBloodGroup] = useState('B+');
+
+  // Female Student Safety & Protected Contact Detection
+  const isFemaleStudent = (member: RegisteredMember): boolean => {
+    if (member.gender === 'Female') return true;
+    if (member.gender === 'Male') return false;
+    const femalePattern = /\b(mst|miss|mrs|begum|khatun|akter|fatema|nusrat|tanjina|jannat|sultana|afrin|sabiha|mim|sadia|lamia|maria|rupa|farhana|sharmin|sumaiya|shirin|nargis|rokeya|tania|tahmina|asma|salma|naznin|marufa|shampa|munira|fahmida|aysha|ayesha|rabeya|jannatul|umme|nasrin|anika|suraiya|tanzina|mitu|bithi|laboni|swapna|shila|poly|munni|sonia|shanta)\b/i;
+    return femalePattern.test(member.name);
+  };
+
+  // Mask female student phone number for public privacy (017******12) unless Master Admin
+  const getDisplayPhone = (member: RegisteredMember): string => {
+    const isFemale = isFemaleStudent(member);
+    if (member.role === 'Student' && isFemale && !isMasterAdmin) {
+      const raw = (member.phone || '').trim();
+      if (!raw) return '017******12';
+      const digits = raw.replace(/\D/g, '');
+      const prefix = raw.startsWith('+880') ? '+880 17' : (digits.startsWith('01') ? digits.slice(0, 3) : '017');
+      const suffix = digits.slice(-2) || (raw.length >= 2 ? raw.slice(-2) : '12');
+      return `${prefix}******${suffix}`;
+    }
+    return member.phone;
+  };
   const [formGuardianName, setFormGuardianName] = useState('Mohammad Rahman');
   const [formGuardianPhone, setFormGuardianPhone] = useState('+880 1711-223344');
   const [formSemester, setFormSemester] = useState('5th Semester');
   const [formOfficeHours, setFormOfficeHours] = useState('Sun - Wed (10:00 AM - 12:30 PM)');
   const [formAssignedClasses, setFormAssignedClasses] = useState('Tex-301: Advanced Dyeing, Tex-302: Lab Practice');
+  const [formCurrentPlacement, setFormCurrentPlacement] = useState('In Academic Studies');
+  const [formJobDesignation, setFormJobDesignation] = useState('');
+  const [formJobLocation, setFormJobLocation] = useState('');
+  const [formInternshipStatus, setFormInternshipStatus] = useState('Not Started');
+  const [formInternshipCompany, setFormInternshipCompany] = useState('');
+  const [formInternshipDuration, setFormInternshipDuration] = useState('');
 
   const handleAddPhotoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -137,6 +173,12 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
     setFormEmail('');
     setFormPhone('+880 1700-123456');
     setFormPhotoUrl('');
+    setFormCurrentPlacement('In Academic Studies');
+    setFormJobDesignation('');
+    setFormJobLocation('');
+    setFormInternshipStatus('Not Started');
+    setFormInternshipCompany('');
+    setFormInternshipDuration('');
     setShowAddModal(true);
   };
 
@@ -151,6 +193,7 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
       rollOrEmpId: formRollId,
       name: formName,
       role: addType,
+      gender: formGender,
       staffCategory: addType === 'Student' ? 'Student' : 'Teacher',
       department: formDeptKey || departmentKey,
       batchOrDesignation: formBatchOrDesignation,
@@ -165,7 +208,13 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
       guardianPhone: formGuardianPhone,
       semester: formSemester,
       officeHours: formOfficeHours,
-      assignedClasses: formAssignedClasses.split(',').map(s => s.trim())
+      assignedClasses: formAssignedClasses.split(',').map(s => s.trim()),
+      currentPlacement: formCurrentPlacement,
+      jobDesignation: formJobDesignation,
+      jobLocation: formJobLocation,
+      internshipStatus: formInternshipStatus,
+      internshipCompany: formInternshipCompany,
+      internshipDuration: formInternshipDuration
     };
 
     onRegisterMember(newMember);
@@ -242,16 +291,90 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
 
   const filteredMembers = deptMembers.filter(m => {
     const matchesRole = filterRole === 'ALL' || m.role === filterRole;
+    
+    // Session filter
+    const matchesSession = filterSession === 'ALL' || 
+      m.batchOrDesignation.toLowerCase().includes(filterSession.toLowerCase()) ||
+      (m.semester && m.semester.toLowerCase().includes(filterSession.toLowerCase()));
+
+    // Status filter (Active vs Graduated)
+    const isGraduated = m.batchOrDesignation.toLowerCase().includes('graduated') || 
+                        m.batchOrDesignation.toLowerCase().includes('alumni') || 
+                        m.semester === 'Graduated' || 
+                        m.semester === 'Alumni';
+    const matchesStatus = filterStatus === 'ALL' || 
+      (filterStatus === 'Active' && !isGraduated) || 
+      (filterStatus === 'Graduated' && isGraduated);
+
     const q = searchQuery.toLowerCase();
     const matchesSearch = !q || 
       m.name.toLowerCase().includes(q) || 
       m.rollOrEmpId.toLowerCase().includes(q) || 
       m.batchOrDesignation.toLowerCase().includes(q) ||
-      m.email.toLowerCase().includes(q);
-    return matchesRole && matchesSearch;
+      (m.email && m.email.toLowerCase().includes(q)) ||
+      (m.phone && m.phone.toLowerCase().includes(q)) ||
+      (m.bloodGroup && m.bloodGroup.toLowerCase().includes(q)) ||
+      (m.guardianName && m.guardianName.toLowerCase().includes(q));
+
+    return matchesRole && matchesSession && matchesStatus && matchesSearch;
   });
 
-  const studentCount = deptMembers.filter(m => m.role === 'Student').length;
+  const handleExportCSV = () => {
+    const headers = [
+      'Roll/Employee ID',
+      'Name',
+      'Role',
+      'Gender',
+      'Department',
+      'Batch/Designation',
+      'Semester',
+      'Access Status',
+      'Contact Phone',
+      'Email',
+      'Blood Group',
+      'Guardian Name',
+      'Guardian Phone'
+    ];
+    const rows = filteredMembers.map(m => [
+      `"${(m.rollOrEmpId || '').replace(/"/g, '""')}"`,
+      `"${(m.name || '').replace(/"/g, '""')}"`,
+      `"${(m.role || '').replace(/"/g, '""')}"`,
+      `"${m.gender || (isFemaleStudent(m) ? 'Female' : 'Male')}"`,
+      `"${(m.department || '').replace(/"/g, '""')}"`,
+      `"${(m.batchOrDesignation || '').replace(/"/g, '""')}"`,
+      `"${(m.semester || '').replace(/"/g, '""')}"`,
+      `"${(m.accessStatus || 'Active').replace(/"/g, '""')}"`,
+      `"${getDisplayPhone(m).replace(/"/g, '""')}"`,
+      `"${(m.email || '').replace(/"/g, '""')}"`,
+      `"${(m.bloodGroup || '').replace(/"/g, '""')}"`,
+      `"${(m.guardianName || '').replace(/"/g, '""')}"`,
+      `"${(m.guardianPhone || '').replace(/"/g, '""')}"`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `RTI_${departmentKey}_Directory_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const studentMembers = deptMembers.filter(m => m.role === 'Student');
+  const activeStudentsCount = studentMembers.filter(m => 
+    !m.batchOrDesignation.toLowerCase().includes('graduated') && 
+    !m.batchOrDesignation.toLowerCase().includes('alumni') && 
+    m.semester !== 'Graduated' && 
+    m.semester !== 'Alumni'
+  ).length;
+
+  const graduatedStudentsCount = studentMembers.filter(m => 
+    m.batchOrDesignation.toLowerCase().includes('graduated') || 
+    m.batchOrDesignation.toLowerCase().includes('alumni') || 
+    m.semester === 'Graduated' || 
+    m.semester === 'Alumni'
+  ).length;
+
   const facultyCount = deptMembers.filter(m => m.role === 'Faculty').length;
 
   return (
@@ -304,78 +427,165 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
       {/* KPI Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-semibold text-slate-500">Department Students</div>
-          <div className="text-2xl font-bold text-purple-700 font-mono mt-1">{studentCount}</div>
-          <div className="text-[10px] text-emerald-600 font-medium mt-0.5">Enrolled Across Batches</div>
+          <div className="text-xs font-semibold text-slate-500">Active Running Students</div>
+          <div className="text-2xl font-bold text-emerald-600 font-mono mt-1">{activeStudentsCount}</div>
+          <div className="text-[10px] text-emerald-700 font-bold mt-0.5">🟢 Enrolled & Attending</div>
+        </div>
+        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div className="text-xs font-semibold text-slate-500">Graduated / Alumni</div>
+          <div className="text-2xl font-bold text-indigo-700 font-mono mt-1">{graduatedStudentsCount}</div>
+          <div className="text-[10px] text-indigo-600 font-bold mt-0.5">🎓 Ex-Students Registered</div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
           <div className="text-xs font-semibold text-slate-500">Faculty & Lecturers</div>
-          <div className="text-2xl font-bold text-indigo-700 font-mono mt-1">{facultyCount}</div>
-          <div className="text-[10px] text-indigo-600 font-medium mt-0.5">Assigned Courses & Labs</div>
+          <div className="text-2xl font-bold text-purple-700 font-mono mt-1">{facultyCount}</div>
+          <div className="text-[10px] text-purple-600 font-medium mt-0.5">Assigned Courses & Labs</div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-semibold text-slate-500">Average Attendance</div>
-          <div className="text-2xl font-bold text-emerald-600 font-mono mt-1">94.8 %</div>
-          <div className="text-[10px] text-slate-500 mt-0.5">Gate Turnstile Verified</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-semibold text-slate-500">Department Status</div>
-          <div className="text-2xl font-bold text-slate-800 font-mono mt-1">OPERATIONAL</div>
-          <div className="text-[10px] text-purple-600 font-medium mt-0.5">RTI OS Synchronized</div>
+          <div className="text-xs font-semibold text-slate-500">Total Directory Members</div>
+          <div className="text-2xl font-bold text-slate-800 font-mono mt-1">{deptMembers.length}</div>
+          <div className="text-[10px] text-sky-600 font-medium mt-0.5">All Sessions & Staff</div>
         </div>
       </div>
 
-      {/* Controls & Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-        <div className="flex items-center space-x-2 w-full sm:w-auto">
-          <button
-            onClick={() => setFilterRole('ALL')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterRole === 'ALL'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            All Members ({deptMembers.length})
-          </button>
-          <button
-            onClick={() => setFilterRole('Student')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterRole === 'Student'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            Students ({studentCount})
-          </button>
-          <button
-            onClick={() => setFilterRole('Faculty')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterRole === 'Faculty'
-                ? 'bg-purple-600 text-white shadow-sm'
-                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-            }`}
-          >
-            Teachers / Faculty ({facultyCount})
-          </button>
+      {/* Controls, Filters & Search */}
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Role Filter */}
+          <div className="flex items-center space-x-1 bg-white p-1 rounded-xl border border-slate-200 shadow-xs">
+            <button
+              onClick={() => setFilterRole('ALL')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filterRole === 'ALL'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilterRole('Student')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filterRole === 'Student'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              Students
+            </button>
+            <button
+              onClick={() => setFilterRole('Faculty')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filterRole === 'Faculty'
+                  ? 'bg-purple-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              Teachers
+            </button>
+          </div>
+
+          {/* Academic Session Filter */}
+          <div className="flex items-center space-x-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-xs">
+            <span className="text-[11px] font-bold text-slate-500">Session:</span>
+            <select
+              value={filterSession}
+              onChange={(e) => setFilterSession(e.target.value)}
+              className="text-xs font-bold bg-transparent text-slate-800 focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All Academic Sessions</option>
+              <option value="2020">Session 2020-21</option>
+              <option value="2021">Session 2021-22</option>
+              <option value="2022">Session 2022-23</option>
+              <option value="2023">Session 2023-24</option>
+              <option value="2024">Session 2024-25</option>
+              <option value="2025">Session 2025-26</option>
+              <option value="2026">Session 2026-27</option>
+              <option value="2027">Session 2027-28</option>
+              <option value="2028">Session 2028-29</option>
+              <option value="2029">Session 2029-30</option>
+              <option value="Batch 50">Batch 50</option>
+              <option value="Batch 51">Batch 51</option>
+              <option value="Batch 52">Batch 52</option>
+              <option value="Batch 53">Batch 53</option>
+              <option value="Batch 54">Batch 54</option>
+              <option value="Batch 55">Batch 55</option>
+            </select>
+          </div>
+
+          {/* Status Filter (Active vs Graduated) */}
+          <div className="flex items-center space-x-1 bg-white p-1 rounded-xl border border-slate-200 shadow-xs">
+            <button
+              onClick={() => setFilterStatus('ALL')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                filterStatus === 'ALL'
+                  ? 'bg-slate-800 text-white'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              All Status
+            </button>
+            <button
+              onClick={() => setFilterStatus('Active')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                filterStatus === 'Active'
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              🟢 Running
+            </button>
+            <button
+              onClick={() => setFilterStatus('Graduated')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                filterStatus === 'Graduated'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              🎓 Alumni
+            </button>
+          </div>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-          <input
-            type="text"
-            placeholder="Search name, ID, email..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-purple-500"
-          />
+        <div className="flex items-center gap-2 w-full lg:w-auto">
+          {/* Instant Search Bar */}
+          <div className="relative flex-1 sm:w-64">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Search Name, Roll / ID, Batch, Phone..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-8 py-1.5 bg-white border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-purple-500 font-medium text-slate-800"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700 text-xs font-bold"
+                title="Clear Search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Export to CSV / Excel Button */}
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all whitespace-nowrap cursor-pointer"
+            title="Download directory list to CSV / Excel spreadsheet"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span>Export CSV</span>
+          </button>
         </div>
       </div>
 
       {/* Database Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left text-xs min-w-[700px]">
             <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-[10px] border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">Member Name & ID</th>
@@ -469,14 +679,45 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                       )}
                     </td>
                     <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">
-                      <a href={`tel:${member.phone}`} className="hover:text-purple-600 hover:underline flex items-center space-x-1">
-                        <Phone className="w-3 h-3 text-purple-600" />
-                        <span>{member.phone}</span>
-                      </a>
-                      <a href={`mailto:${member.email}`} className="text-[10px] text-slate-400 hover:text-purple-600 hover:underline flex items-center space-x-1 mt-0.5">
-                        <Mail className="w-3 h-3 text-indigo-500" />
-                        <span>{member.email}</span>
-                      </a>
+                      {isFemaleStudent(member) && member.role === 'Student' ? (
+                        <div className="space-y-0.5">
+                          {isMasterAdmin ? (
+                            <div>
+                              <a href={`tel:${member.phone}`} className="hover:text-purple-600 hover:underline flex items-center space-x-1">
+                                <Phone className="w-3 h-3 text-purple-600" />
+                                <span>{member.phone}</span>
+                              </a>
+                              <span className="inline-flex items-center space-x-0.5 px-1 py-0.2 text-[8px] font-bold bg-emerald-100 text-emerald-800 rounded">
+                                <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
+                                <span>Admin View</span>
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-1" title="Female Student Contact Masked for Privacy">
+                              <Lock className="w-3 h-3 text-rose-500 flex-shrink-0" />
+                              <span className="font-mono text-slate-700 font-bold">{getDisplayPhone(member)}</span>
+                              <span className="text-[8px] bg-rose-50 text-rose-700 font-bold px-1 py-0.2 rounded border border-rose-200">
+                                Protected
+                              </span>
+                            </div>
+                          )}
+                          <a href={`mailto:${member.email}`} className="text-[10px] text-slate-400 hover:text-purple-600 hover:underline flex items-center space-x-1 mt-0.5">
+                            <Mail className="w-3 h-3 text-indigo-500" />
+                            <span>{member.email}</span>
+                          </a>
+                        </div>
+                      ) : (
+                        <div>
+                          <a href={`tel:${member.phone}`} className="hover:text-purple-600 hover:underline flex items-center space-x-1">
+                            <Phone className="w-3 h-3 text-purple-600" />
+                            <span>{member.phone}</span>
+                          </a>
+                          <a href={`mailto:${member.email}`} className="text-[10px] text-slate-400 hover:text-purple-600 hover:underline flex items-center space-x-1 mt-0.5">
+                            <Mail className="w-3 h-3 text-indigo-500" />
+                            <span>{member.email}</span>
+                          </a>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-4">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 flex items-center space-x-1 w-max">
@@ -503,24 +744,22 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                         >
                           View Profile
                         </button>
-                        {(isMasterAdmin || activeRole === 'Teacher' || activeRole === 'Faculty' || activeRole === 'Dept Admin') && (
-                          <button
-                            onClick={() => setEditingMember(member)}
-                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-lg border border-amber-300 transition-all flex items-center space-x-1"
-                            title="Edit Member Details"
-                          >
-                            <Edit3 className="w-3 h-3 text-amber-600" />
-                            <span>Edit</span>
-                          </button>
-                        )}
-                        {isMasterAdmin && onDeleteMember && (
+                        <button
+                          onClick={() => setEditingMember(member)}
+                          className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-lg border border-amber-300 transition-all flex items-center space-x-1"
+                          title="Edit Member Details"
+                        >
+                          <Edit3 className="w-3 h-3 text-amber-600" />
+                          <span>Edit</span>
+                        </button>
+                        {onDeleteMember && (
                           <button
                             onClick={() => {
-                              if (window.confirm(`Are you sure you want to remove ${member.name} (${member.rollOrEmpId}) from the directory?`)) {
+                              if (window.confirm("Are you sure you want to delete this profile?")) {
                                 onDeleteMember(member.id);
                               }
                             }}
-                            className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg border border-rose-200 transition-all flex items-center space-x-1"
+                            className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-lg border border-rose-200 transition-all flex items-center space-x-1"
                             title="Remove Member from Directory"
                           >
                             <Trash2 className="w-3 h-3 text-rose-600" />
@@ -540,8 +779,8 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
 
       {/* COMPREHENSIVE PROFILE MODAL */}
       {selectedMember && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-5">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-2xl w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-2xl space-y-5">
             {/* Header */}
             <div className="flex items-start justify-between border-b border-slate-100 pb-4">
               <div className="flex items-center space-x-4">
@@ -591,6 +830,40 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                   </div>
                 </div>
 
+                {/* Student Direct Contact Info */}
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-slate-800 flex items-center space-x-1.5">
+                      <Phone className="w-4 h-4 text-purple-600" />
+                      <span>Student Contact Information</span>
+                    </h4>
+                    {isFemaleStudent(selectedMember) && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200 flex items-center space-x-1">
+                        <Lock className="w-3 h-3" />
+                        <span>{isMasterAdmin ? '🛡️ Admin Decrypted Contact' : '🔒 Female Student Privacy Protected'}</span>
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-slate-700">
+                    <div>
+                      <span className="text-slate-400">Phone: </span>
+                      {isFemaleStudent(selectedMember) && !isMasterAdmin ? (
+                        <span className="font-mono font-bold text-slate-700">{getDisplayPhone(selectedMember)}</span>
+                      ) : (
+                        <a href={`tel:${selectedMember.phone}`} className="font-mono font-bold text-purple-800 hover:underline">
+                          {selectedMember.phone}
+                        </a>
+                      )}
+                    </div>
+                    <div>
+                      <span className="text-slate-400">Email: </span>
+                      <a href={`mailto:${selectedMember.email}`} className="font-bold text-indigo-700 hover:underline">
+                        {selectedMember.email}
+                      </a>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Guardian Info */}
                 <div className="bg-purple-50/60 p-4 rounded-xl border border-purple-200 space-y-2">
                   <h4 className="font-bold text-purple-900 flex items-center space-x-1.5">
@@ -605,6 +878,60 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                     <div>
                       <span className="text-slate-400">Phone: </span>
                       <span className="font-mono font-bold text-purple-800">{selectedMember.guardianPhone || selectedMember.phone}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Career Placement & Industrial Internship Card */}
+                <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-4 rounded-2xl border border-indigo-500/30 space-y-3 shadow-lg">
+                  <div className="flex items-center justify-between border-b border-indigo-900/60 pb-2">
+                    <h4 className="font-bold text-xs text-purple-300 flex items-center space-x-2">
+                      <Briefcase className="w-4 h-4 text-purple-400" />
+                      <span>Career Placement & Industrial Internship Track</span>
+                    </h4>
+                    {isMasterAdmin && (
+                      <button
+                        onClick={() => {
+                          setEditingMember(selectedMember);
+                          setSelectedMember(null);
+                        }}
+                        className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-[10px] flex items-center space-x-1 transition-all"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span>Edit Career Info</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                    {/* Placement Column */}
+                    <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                      <div className="text-[10px] text-purple-400 uppercase font-mono tracking-wider font-bold">Current Placement & Job</div>
+                      <div className="text-sm font-bold text-white">
+                        {selectedMember.jobDesignation ? `${selectedMember.jobDesignation}` : (selectedMember.currentPlacement || 'In Academic Studies')}
+                      </div>
+                      <div className="text-xs text-slate-300 flex items-center space-x-1">
+                        <span className="text-slate-500 font-mono">Location/Mill:</span>
+                        <span className="font-semibold text-sky-300">{selectedMember.jobLocation || 'RTI Academic Campus'}</span>
+                      </div>
+                      <div className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-200 border border-purple-500/30">
+                        Status: {selectedMember.currentPlacement || 'In Academic Studies'}
+                      </div>
+                    </div>
+
+                    {/* Internship Column */}
+                    <div className="bg-slate-950/70 p-3 rounded-xl border border-slate-800 space-y-1.5">
+                      <div className="text-[10px] text-emerald-400 uppercase font-mono tracking-wider font-bold">Industrial Internship / Apprenticeship</div>
+                      <div className="text-sm font-bold text-emerald-300">
+                        {selectedMember.internshipCompany || 'Textile Mill Internship (Pending / In Prep)'}
+                      </div>
+                      <div className="text-xs text-slate-300 flex items-center space-x-1">
+                        <span className="text-slate-500 font-mono">Duration:</span>
+                        <span className="font-semibold text-slate-200">{selectedMember.internshipDuration || '4-Month Industrial Period'}</span>
+                      </div>
+                      <div className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Internship: {selectedMember.internshipStatus || 'Completed / Verified'}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -840,8 +1167,8 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
 
       {/* DIGITAL ID CARD GENERATOR MODAL */}
       {selectedMember && showDigitalIdCard && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-purple-200 space-y-4">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-sm w-full p-4 sm:p-6 shadow-2xl border border-purple-200 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <span className="text-xs font-bold text-purple-700 uppercase tracking-widest flex items-center space-x-1">
                 <Sparkles className="w-4 h-4 text-purple-600" />
@@ -926,8 +1253,8 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
 
       {/* OFFICIAL DOCUMENT & CERTIFICATE GENERATOR MODAL */}
       {selectedMember && showOfficialCertificate && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-700 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 text-white my-8">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 text-white max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">
                 <FileText className="w-5 h-5 text-emerald-400" />
@@ -1081,8 +1408,8 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
 
       {/* ADD MEMBER MODAL */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="font-bold text-slate-900 text-base flex items-center space-x-2">
                 <UserPlus className="w-5 h-5 text-purple-600" />
@@ -1148,28 +1475,42 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Roll / Employee ID</label>
+                  <label className="block text-slate-700 font-bold mb-1">Roll / ID *</label>
                   <input
                     type="text"
                     value={formRollId}
                     onChange={e => setFormRollId(e.target.value)}
+                    placeholder={addType === 'Student' ? 'e.g. 501245' : 'e.g. FAC-201'}
                     required
                     className="w-full p-2 border border-slate-300 rounded-xl font-mono text-xs"
                   />
                 </div>
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">
-                    {addType === 'Student' ? 'Batch / Year' : 'Designation'}
+                    {addType === 'Student' ? 'Batch / Session' : 'Designation'}
                   </label>
                   <input
                     type="text"
                     value={formBatchOrDesignation}
                     onChange={e => setFormBatchOrDesignation(e.target.value)}
+                    placeholder={addType === 'Student' ? 'e.g. Session 2026-27' : 'e.g. Lecturer'}
                     required
                     className="w-full p-2 border border-slate-300 rounded-xl text-xs"
                   />
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Gender / Safety</label>
+                  <select
+                    value={formGender}
+                    onChange={e => setFormGender(e.target.value as any)}
+                    className="w-full p-2 border border-slate-300 rounded-xl text-xs font-bold"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female (Protected)</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
               </div>
 
@@ -1247,6 +1588,88 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                       />
                     </div>
                   </div>
+
+                  {/* Career Placement & Internship Section for Student/Alumni */}
+                  <div className="p-3 bg-purple-50/50 border border-purple-200 rounded-xl space-y-2.5">
+                    <div className="text-[11px] font-bold text-purple-900 flex items-center space-x-1">
+                      <Briefcase className="w-3.5 h-3.5 text-purple-600" />
+                      <span>Career Placement & Industrial Internship (Optional / Editable)</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-0.5 text-[10px]">Placement Status</label>
+                        <select
+                          value={formCurrentPlacement}
+                          onChange={e => setFormCurrentPlacement(e.target.value)}
+                          className="w-full p-1.5 border border-slate-300 rounded-lg text-xs"
+                        >
+                          <option value="In Academic Studies">In Academic Studies</option>
+                          <option value="Employed / Industry Placed">Employed / Industry Placed</option>
+                          <option value="Seeking Placement">Seeking Placement</option>
+                          <option value="Higher Studies">Higher Studies</option>
+                          <option value="Alumni Entrepreneur">Alumni Entrepreneur</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-0.5 text-[10px]">Job Designation</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Assistant Merchandiser"
+                          value={formJobDesignation}
+                          onChange={e => setFormJobDesignation(e.target.value)}
+                          className="w-full p-1.5 border border-slate-300 rounded-lg text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 font-bold mb-0.5 text-[10px]">Job Location / Company Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Beximco Textiles (Gazipur) or Square (Dhaka)"
+                        value={formJobLocation}
+                        onChange={e => setFormJobLocation(e.target.value)}
+                        className="w-full p-1.5 border border-slate-300 rounded-lg text-xs"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-1 border-t border-purple-100">
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-0.5 text-[10px]">Internship Status</label>
+                        <select
+                          value={formInternshipStatus}
+                          onChange={e => setFormInternshipStatus(e.target.value)}
+                          className="w-full p-1.5 border border-slate-300 rounded-lg text-xs"
+                        >
+                          <option value="Not Started">Not Started</option>
+                          <option value="Ongoing">Ongoing</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Seeking Placement">Seeking Placement</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-0.5 text-[10px]">Internship Mill / Factory</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Ha-Meem Group"
+                          value={formInternshipCompany}
+                          onChange={e => setFormInternshipCompany(e.target.value)}
+                          className="w-full p-1.5 border border-slate-300 rounded-lg text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-slate-700 font-bold mb-0.5 text-[10px]">Duration / Batch</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 3 Months (Spring 2026)"
+                          value={formInternshipDuration}
+                          onChange={e => setFormInternshipDuration(e.target.value)}
+                          className="w-full p-1.5 border border-slate-300 rounded-lg text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </>
               ) : (
                 <>
@@ -1293,8 +1716,8 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
 
       {/* EDIT MEMBER MODAL */}
       {editingMember && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl my-8">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-lg w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h3 className="text-lg font-bold text-slate-900 flex items-center space-x-2">
                 <Edit3 className="w-5 h-5 text-amber-600" />
@@ -1386,7 +1809,7 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-slate-700 font-bold mb-1">Batch / Designation *</label>
                   <input
@@ -1396,6 +1819,19 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                     onChange={e => setEditingMember({ ...editingMember, batchOrDesignation: e.target.value })}
                     className="w-full p-2.5 bg-slate-900 border border-slate-700 text-white rounded-xl text-xs font-bold"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-bold mb-1">Gender / Safety</label>
+                  <select
+                    value={editingMember.gender || (isFemaleStudent(editingMember) ? 'Female' : 'Male')}
+                    onChange={e => setEditingMember({ ...editingMember, gender: e.target.value as any })}
+                    className="w-full p-2.5 bg-slate-900 border border-slate-700 text-white rounded-xl text-xs font-bold"
+                  >
+                    <option value="Male">Male</option>
+                    <option value="Female">Female (Protected Contact)</option>
+                    <option value="Other">Other</option>
+                  </select>
                 </div>
 
                 <div>
@@ -1462,6 +1898,91 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
                     onChange={e => setEditingMember({ ...editingMember, guardianPhone: e.target.value })}
                     className="w-full p-2.5 bg-slate-900 border border-slate-700 text-white rounded-xl font-mono text-xs font-bold"
                   />
+                </div>
+              </div>
+
+              {/* Career Placement & Industrial Internship Section (Editable) */}
+              <div className="p-3.5 bg-slate-900 border border-slate-700 rounded-2xl space-y-3">
+                <div className="text-purple-300 font-bold flex items-center space-x-1.5 border-b border-slate-800 pb-2">
+                  <Briefcase className="w-4 h-4 text-purple-400" />
+                  <span>Career Placement & Industrial Internship Details</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Current Placement / Status</label>
+                    <select
+                      value={editingMember.currentPlacement || 'In Academic Studies'}
+                      onChange={e => setEditingMember({ ...editingMember, currentPlacement: e.target.value })}
+                      className="w-full p-2 bg-slate-950 border border-slate-700 text-white rounded-xl text-xs font-bold"
+                    >
+                      <option value="In Academic Studies">In Academic Studies</option>
+                      <option value="Employed / Industry Placed">Employed / Industry Placed</option>
+                      <option value="Seeking Placement">Seeking Placement</option>
+                      <option value="Higher Studies">Higher Studies</option>
+                      <option value="Alumni Entrepreneur">Alumni Entrepreneur</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Job Designation</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Assistant Production Manager / Merchandiser"
+                      value={editingMember.jobDesignation || ''}
+                      onChange={e => setEditingMember({ ...editingMember, jobDesignation: e.target.value })}
+                      className="w-full p-2 bg-slate-950 border border-slate-700 text-white rounded-xl text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold mb-1">Job Location / Mill / Factory Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Beximco Textiles (Gazipur) or Square Fashions (Habiganj)"
+                    value={editingMember.jobLocation || ''}
+                    onChange={e => setEditingMember({ ...editingMember, jobLocation: e.target.value })}
+                    className="w-full p-2 bg-slate-950 border border-slate-700 text-white rounded-xl text-xs"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800">
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Internship Status</label>
+                    <select
+                      value={editingMember.internshipStatus || 'Not Started'}
+                      onChange={e => setEditingMember({ ...editingMember, internshipStatus: e.target.value })}
+                      className="w-full p-2 bg-slate-950 border border-slate-700 text-white rounded-xl text-xs font-bold"
+                    >
+                      <option value="Not Started">Not Started</option>
+                      <option value="Ongoing">Ongoing</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Seeking Placement">Seeking Placement</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Internship Mill / Factory</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Ha-Meem Group Ltd"
+                      value={editingMember.internshipCompany || ''}
+                      onChange={e => setEditingMember({ ...editingMember, internshipCompany: e.target.value })}
+                      className="w-full p-2 bg-slate-950 border border-slate-700 text-white rounded-xl text-xs"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-bold mb-1">Duration / Period</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 3 Months (Spring 2026)"
+                      value={editingMember.internshipDuration || ''}
+                      onChange={e => setEditingMember({ ...editingMember, internshipDuration: e.target.value })}
+                      className="w-full p-2 bg-slate-950 border border-slate-700 text-white rounded-xl text-xs"
+                    />
+                  </div>
                 </div>
               </div>
 

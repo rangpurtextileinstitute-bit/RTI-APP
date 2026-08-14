@@ -59,13 +59,6 @@ export const QRAttendanceGate: React.FC<QRAttendanceGateProps> = ({
   const [manualQrInput, setManualQrInput] = useState('');
   const [lastScanResult, setLastScanResult] = useState<GateAccessLog | null>(null);
   const [searchLog, setSearchLog] = useState('');
-
-  // WebRTC Live Camera Scanner State
-  const videoRef = useRef<HTMLVideoElement | null>(null);
-  const scanCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
-  const [cameraError, setCameraError] = useState<string | null>(null);
-  const [cameraRequested, setCameraRequested] = useState<boolean>(true);
   const [lastScannedQrText, setLastScannedQrText] = useState<string>('');
   const lastScannedCodeRef = useRef<string>('');
   const lastScannedTimeRef = useRef<number>(0);
@@ -91,7 +84,7 @@ export const QRAttendanceGate: React.FC<QRAttendanceGateProps> = ({
     }
   };
 
-  // Process decoded QR string (from camera, file upload, or manual input)
+  // Process decoded QR string (from text input, quick select, or file upload)
   const handleProcessScannedQr = (rawCode: string) => {
     if (!rawCode || !rawCode.trim()) return;
     const cleaned = rawCode.trim();
@@ -155,84 +148,6 @@ export const QRAttendanceGate: React.FC<QRAttendanceGateProps> = ({
     playScanBeep(member.accessStatus !== 'Restricted');
     handleExecuteScan(member);
   };
-
-  // Initialize WebRTC Camera Feed
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-    let isMounted = true;
-
-    const startCam = async () => {
-      if (activeGateTab !== 'simulator' || !cameraRequested) {
-        setIsCameraActive(false);
-        return;
-      }
-      try {
-        setCameraError(null);
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
-        });
-        if (!isMounted) {
-          stream.getTracks().forEach(t => t.stop());
-          return;
-        }
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute('playsinline', 'true');
-          await videoRef.current.play();
-          setIsCameraActive(true);
-        }
-      } catch (err: any) {
-        console.warn('Camera stream blocked or unavailable:', err);
-        if (isMounted) {
-          setCameraError('Camera permissions restricted or camera device unavailable.');
-          setIsCameraActive(false);
-        }
-      }
-    };
-
-    startCam();
-
-    return () => {
-      isMounted = false;
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-      }
-    };
-  }, [activeGateTab, cameraRequested]);
-
-  // Active Frame QR Scanner Loop using jsQR
-  useEffect(() => {
-    if (!isCameraActive || activeGateTab !== 'simulator') return;
-
-    let animId: number;
-
-    const scanFrame = () => {
-      const video = videoRef.current;
-      const canvas = scanCanvasRef.current;
-      if (video && video.readyState === video.HAVE_ENOUGH_DATA && canvas) {
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'dontInvert'
-          });
-          if (code && code.data) {
-            handleProcessScannedQr(code.data);
-          }
-        }
-      }
-      animId = requestAnimationFrame(scanFrame);
-    };
-
-    animId = requestAnimationFrame(scanFrame);
-
-    return () => {
-      if (animId) cancelAnimationFrame(animId);
-    };
-  }, [isCameraActive, activeGateTab, registeredMembers]);
 
   // Decode Image File containing QR
   const handleImageFileQrDecode = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -749,95 +664,66 @@ export const QRAttendanceGate: React.FC<QRAttendanceGateProps> = ({
         </div>
       )}
 
-      {/* VIEW 2: Instant WebRTC Camera QR Scanner Terminal */}
+      {/* VIEW 2: Instant Digital QR & Roll Attendance Terminal */}
       {activeGateTab === 'simulator' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column (Camera Feed + Fallback Options) */}
+          {/* Left Column: Digital Terminal Controls */}
           <div className="lg:col-span-7 space-y-4">
-            {/* Live Camera Scanner Window */}
+            {/* Live Terminal Header & Status Panel */}
             <div className="bg-slate-950 rounded-2xl border-2 border-emerald-500/50 p-4 text-white shadow-2xl relative overflow-hidden">
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center space-x-2">
-                  <Camera className="w-5 h-5 text-emerald-400 animate-pulse" />
+                  <ScanLine className="w-5 h-5 text-emerald-400 animate-pulse" />
                   <span className="font-extrabold text-xs text-emerald-400 font-mono uppercase tracking-wider">
-                    WEBRTC LIVE CAMERA SCANNER
+                    RTI DIGITAL ATTENDANCE TERMINAL
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase font-mono ${
-                    isCameraActive ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                  }`}>
-                    {isCameraActive ? '● SCANNER ACTIVE' : '○ CAMERA INACTIVE'}
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    ● TERMINAL READY
                   </span>
-                  <button
-                    onClick={() => setCameraRequested(!cameraRequested)}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all"
-                    title="Toggle Camera Stream"
-                  >
-                    {cameraRequested ? <Square className="w-3.5 h-3.5 text-rose-400" /> : <Play className="w-3.5 h-3.5 text-emerald-400" />}
-                  </button>
                 </div>
               </div>
 
-              {/* Video Feed / Reticle Display */}
-              <div className="relative mt-3 rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-800">
-                {/* Hidden canvas for jsQR frame capture */}
-                <canvas ref={scanCanvasRef} className="hidden" />
-
-                {/* Video Feed */}
-                <video
-                  ref={videoRef}
-                  className={`w-full h-full object-cover ${isCameraActive ? 'block' : 'hidden'}`}
-                  muted
-                  playsInline
-                />
-
-                {/* Scanning HUD Overlay when Active */}
-                {isCameraActive && (
-                  <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
-                    {/* Laser Scanner Line Animation */}
-                    <div className="w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-lg shadow-emerald-400/80 animate-pulse absolute top-1/2 -translate-y-1/2"></div>
-
-                    {/* Corner Frame Reticles */}
-                    <div className="w-48 h-48 border-2 border-emerald-400/80 rounded-2xl relative flex items-center justify-center bg-emerald-500/5">
-                      <div className="absolute -top-1 -left-1 w-5 h-5 border-t-4 border-l-4 border-emerald-400"></div>
-                      <div className="absolute -top-1 -right-1 w-5 h-5 border-t-4 border-r-4 border-emerald-400"></div>
-                      <div className="absolute -bottom-1 -left-1 w-5 h-5 border-b-4 border-l-4 border-emerald-400"></div>
-                      <div className="absolute -bottom-1 -right-1 w-5 h-5 border-b-4 border-r-4 border-emerald-400"></div>
-                      <span className="text-[10px] font-mono font-bold text-emerald-300 bg-slate-950/80 px-2 py-0.5 rounded shadow">
-                        ALIGN QR CODE
-                      </span>
-                    </div>
-
-                    <div className="absolute bottom-2 left-3 right-3 flex items-center justify-between text-[10px] text-emerald-300 font-mono bg-slate-950/80 px-3 py-1 rounded-lg">
-                      <span>FPS: Auto-Scan Loop Active</span>
-                      <span className="flex items-center space-x-1">
-                        <Volume2 className="w-3 h-3 text-emerald-400" />
-                        <span>Sound Chime ON</span>
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Fallback Display if Camera Disabled / Blocked */}
-                {!isCameraActive && (
-                  <div className="text-center p-6 space-y-3">
-                    <div className="w-12 h-12 mx-auto rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400">
-                      <Camera className="w-6 h-6 text-slate-500" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-slate-200">Camera Stream Standby / Blocked</h4>
-                      <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-                        {cameraError || 'Point camera lens at student/teacher QR pass, or use the fallback input options below.'}
-                      </p>
-                    </div>
+              {/* Instant Scan Terminal Input HUD */}
+              <div className="mt-4 p-5 rounded-xl bg-slate-900 border border-slate-800 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-200 mb-1.5 flex items-center justify-between">
+                    <span>⚡ Quick Scan / Barcode / Roll Number Input</span>
+                    <span className="text-[10px] font-normal text-emerald-400 font-mono">Press [ENTER] to Log</span>
+                  </label>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (manualQrInput.trim()) {
+                        handleProcessScannedQr(manualQrInput.trim());
+                        setManualQrInput('');
+                      }
+                    }}
+                    className="flex space-x-2"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Enter Student Roll, Faculty ID, or QR string..."
+                      value={manualQrInput}
+                      onChange={e => setManualQrInput(e.target.value)}
+                      className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700 text-white font-mono text-xs rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder-slate-500"
+                      autoFocus
+                    />
                     <button
-                      onClick={() => setCameraRequested(true)}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all inline-flex items-center space-x-2"
+                      type="submit"
+                      className="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-md shrink-0 flex items-center space-x-1.5"
                     >
-                      <RefreshCw className="w-3.5 h-3.5" />
-                      <span>Re-activate Camera</span>
+                      <ScanLine className="w-4 h-4" />
+                      <span>Scan & Log</span>
                     </button>
+                  </form>
+                </div>
+
+                {lastScannedQrText && (
+                  <div className="p-2.5 rounded-lg bg-slate-950/80 border border-emerald-500/30 flex items-center justify-between text-xs">
+                    <span className="text-slate-400 font-mono text-[11px]">Last Processed Code:</span>
+                    <span className="font-mono font-bold text-emerald-300">{lastScannedQrText}</span>
                   </div>
                 )}
               </div>
@@ -1155,7 +1041,7 @@ export const QRAttendanceGate: React.FC<QRAttendanceGateProps> = ({
             {/* Visual ID Card Card */}
             <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 border-2 border-indigo-500/50 rounded-2xl w-80 p-5 text-white shadow-2xl relative overflow-hidden">
               <div className="text-center pb-3 border-b border-indigo-800/60">
-                <div className="font-black font-mono text-base tracking-widest text-sky-400">NIOTRON</div>
+                <div className="font-black font-mono text-base tracking-widest text-sky-400">RANGPUR TEXTILE</div>
                 <div className="text-[9px] uppercase font-bold text-indigo-300">Textile Institute Official ID</div>
               </div>
 
@@ -1270,8 +1156,8 @@ export const QRAttendanceGate: React.FC<QRAttendanceGateProps> = ({
 
       {/* Manual Entry Modal */}
       {showManualModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 text-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 text-white rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="font-mono font-bold text-base text-white">+ Manual Gate Attendance Entry</h3>
               <button onClick={() => setShowManualModal(false)} className="text-slate-400 hover:text-white p-1">
@@ -1411,8 +1297,8 @@ export const QRAttendanceGate: React.FC<QRAttendanceGateProps> = ({
 
       {/* Bulk Import Attendance Logs Modal */}
       {showBulkModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 text-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 text-white rounded-2xl sm:rounded-3xl max-w-2xl w-full p-4 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <h3 className="font-mono font-bold text-base text-white">📥 Bulk Import Gate Attendance Logs</h3>
               <button onClick={() => setShowBulkModal(false)} className="text-slate-400 hover:text-white p-1">
@@ -1475,8 +1361,8 @@ export const QRAttendanceGate: React.FC<QRAttendanceGateProps> = ({
       )}
       {/* Real-time Turnstile Verification Modal Popup */}
       {showScanResultModal && lastScanResult && (
-        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-emerald-500/80 rounded-3xl max-w-lg w-full p-6 text-white shadow-2xl space-y-5 relative overflow-hidden">
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border-2 border-emerald-500/80 rounded-2xl sm:rounded-3xl max-w-lg w-full p-4 sm:p-6 text-white shadow-2xl space-y-4 sm:space-y-5 relative overflow-hidden max-h-[90vh] overflow-y-auto">
             {/* Top Header */}
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center space-x-2">

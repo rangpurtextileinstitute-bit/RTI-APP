@@ -51,7 +51,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `NIOTRON_Audit_Trail_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `RTI_Audit_Trail_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -59,6 +59,15 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white shadow-2xl space-y-6">
+      {!isMasterAdmin && (
+        <div className="p-3.5 bg-amber-950/70 border border-amber-500/50 rounded-xl flex items-center justify-between text-xs text-amber-200 font-bold">
+          <div className="flex items-center space-x-2">
+            <Lock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <span>🔒 Read-Only Mode: Main Admin Authentication Required (`rangpurtextileinstitute@gmail.com`) to modify database or configuration records.</span>
+          </div>
+        </div>
+      )}
+
       {/* Title Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div className="flex items-center space-x-3">
@@ -76,7 +85,7 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({
               </span>
             </div>
             <h2 className="text-xl font-black tracking-tight text-white font-mono mt-0.5">
-              NIOTRON System Audit & Security Logs
+              RTI System Audit & Security Logs
             </h2>
           </div>
         </div>

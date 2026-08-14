@@ -52,6 +52,8 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
   const [newNoticeCategory, setNewNoticeCategory] = useState<NoticeRecord['category']>('Academic & Exams');
   const [newNoticeContent, setNewNoticeContent] = useState('');
   const [newNoticePriority, setNewNoticePriority] = useState<NoticeRecord['priority']>('Normal');
+  const [newNoticeAuthor, setNewNoticeAuthor] = useState('');
+  const [newNoticeDept, setNewNoticeDept] = useState('General / Campus-wide');
 
   // New Event Form State
   const [newEventTitle, setNewEventTitle] = useState('');
@@ -72,22 +74,27 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
 
   const handleCreateNoticeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newNoticeTitle.trim() || !newNoticeContent.trim()) {
+      return;
+    }
     const notice: NoticeRecord = {
       id: `not-${Date.now()}`,
-      title: newNoticeTitle,
+      title: newNoticeTitle.trim(),
       category: newNoticeCategory,
-      author: isMasterAdmin ? 'Office of Director General' : 'Department Faculty',
-      department: 'General Administration',
+      author: newNoticeAuthor.trim() || (isMasterAdmin ? 'Office of Director General' : 'Institute Campus Member'),
+      department: newNoticeDept.trim() || 'General / Campus-wide',
       date: new Date().toISOString().split('T')[0],
-      content: newNoticeContent,
+      content: newNoticeContent.trim(),
       priority: newNoticePriority,
       isPublished: true,
-      refNo: `NIO/NOTICE/2026/${Math.floor(100 + Math.random() * 900)}`
+      refNo: `RTI/NOTICE/2026/${Math.floor(100 + Math.random() * 900)}`
     };
     onAddNotice(notice);
     setShowCreateNoticeModal(false);
     setNewNoticeTitle('');
     setNewNoticeContent('');
+    setNewNoticeAuthor('');
+    setNewNoticeDept('General / Campus-wide');
   };
 
   const handleCreateEventSubmit = (e: React.FormEvent) => {
@@ -135,7 +142,7 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
           {onOpenAiDrafter && (
             <button
               onClick={onOpenAiDrafter}
-              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 text-white font-bold text-xs shadow-lg shadow-sky-600/25 transition-all"
+              className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 text-white font-bold text-xs shadow-lg shadow-sky-600/25 transition-all cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-amber-300" />
               <span>Draft Notice with AI</span>
@@ -143,11 +150,13 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
           )}
 
           <button
+            id="public-create-notice-btn"
             onClick={() => setShowCreateNoticeModal(true)}
-            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition-all"
+            className="flex items-center space-x-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 transition-all active:scale-95 cursor-pointer"
+            title="Create and publish a new campus notice publicly"
           >
-            <Plus className="w-4 h-4" />
-            <span>Post New Notice</span>
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>+ Create / Add Notice</span>
           </button>
         </div>
       </div>
@@ -186,11 +195,14 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
               className="p-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold"
             >
               <option value="All">All Categories</option>
-              <option value="Urgent">Urgent</option>
+              <option value="Urgent">🚨 Urgent</option>
               <option value="Academic & Exams">Academic & Exams</option>
               <option value="Fees & Dues">Fees & Dues</option>
               <option value="Lab Safety">Lab Safety</option>
               <option value="Events & Workshops">Events & Workshops</option>
+              <option value="Hostel & Mess">Hostel & Mess</option>
+              <option value="Blood Donation & Health">Blood Donation & Health</option>
+              <option value="General Notice">General Campus Notice</option>
             </select>
 
             <div className="relative w-48">
@@ -300,8 +312,8 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
 
       {/* OFFICIAL PDF NOTICE PREVIEW MODAL */}
       {selectedNoticeForPdf && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-300 max-w-2xl w-full p-8 shadow-2xl space-y-6 text-slate-900 font-sans relative">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-300 max-w-2xl w-full p-4 sm:p-8 shadow-2xl space-y-4 sm:space-y-6 text-slate-900 font-sans relative max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setSelectedNoticeForPdf(null)}
               className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold"
@@ -312,13 +324,13 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
             {/* Official Letterhead Header */}
             <div className="border-b-2 border-indigo-900 pb-4 text-center relative">
               <div className="font-mono text-xl font-black tracking-widest text-indigo-950">
-                NATIONAL INSTITUTE OF TEXTILE RESEARCH & OPERATIONS NETWORK
+                RANGPUR TEXTILE INSTITUTE
               </div>
               <div className="text-xs uppercase font-bold text-indigo-700 tracking-wider">
-                Office of the Director General & Academic Registrar
+                Office of the Principal & Academic Registrar
               </div>
               <div className="text-[10px] text-slate-500 mt-1">
-                NIOTRON Campus, Textile Technology Highway • Tel: +880 2 99887766 • www.niotron-textile.edu
+                RTI Campus, Rangpur, Bangladesh • Tel: +880 521 62345 • www.rangpurtextile.edu.bd
               </div>
             </div>
 
@@ -346,7 +358,7 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
               <div className="text-center font-mono">
                 <div className="w-28 border-b border-slate-800 mx-auto mb-1"></div>
                 <div className="font-bold text-xs">{selectedNoticeForPdf.author}</div>
-                <div className="text-[10px] text-slate-500">NIOTRON Seal & Signature</div>
+                <div className="text-[10px] text-slate-500">RTI Official Seal & Signature</div>
               </div>
             </div>
 
@@ -365,39 +377,66 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
 
       {/* CREATE NOTICE MODAL */}
       {showCreateNoticeModal && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl">
+        <div 
+          className="fixed inset-0 bg-slate-900/75 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+          onClick={() => setShowCreateNoticeModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-lg w-full p-4 sm:p-6 shadow-2xl animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-              <h3 className="font-bold text-slate-900 text-sm">Publish Official Notice</h3>
-              <button onClick={() => setShowCreateNoticeModal(false)} className="text-slate-400 font-bold">✕</button>
+              <div className="flex items-center space-x-2">
+                <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Create & Publish Notice</h3>
+                  <p className="text-[11px] text-slate-500">Post announcements and updates publicly to the campus board</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowCreateNoticeModal(false)} 
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 font-bold transition-all"
+                title="Close"
+              >
+                ✕
+              </button>
             </div>
 
-            <form onSubmit={handleCreateNoticeSubmit} className="space-y-3 mt-4 text-xs">
+            <form onSubmit={handleCreateNoticeSubmit} className="space-y-3.5 mt-4 text-xs">
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Notice Title / Subject</label>
+                <label className="block text-slate-700 font-bold mb-1">
+                  Notice Title / Subject <span className="text-rose-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={newNoticeTitle}
                   onChange={e => setNewNoticeTitle(e.target.value)}
                   required
-                  placeholder="e.g. Dyeing Lab Steam Boiler Inspection Schedule"
-                  className="w-full p-2.5 border border-slate-300 rounded-xl"
+                  placeholder="e.g., Dyeing Lab Schedule / Semester Final Notice"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-700 font-bold mb-1">Category</label>
+                  <label className="block text-slate-700 font-bold mb-1">
+                    Category <span className="text-rose-500">*</span>
+                  </label>
                   <select
                     value={newNoticeCategory}
                     onChange={e => setNewNoticeCategory(e.target.value as any)}
-                    className="w-full p-2.5 border border-slate-300 rounded-xl font-bold"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
                   >
                     <option value="Academic & Exams">Academic & Exams</option>
+                    <option value="Urgent">🚨 Urgent Announcement</option>
                     <option value="Fees & Dues">Fees & Dues</option>
                     <option value="Lab Safety">Lab Safety</option>
-                    <option value="Urgent">Urgent</option>
                     <option value="Events & Workshops">Events & Workshops</option>
+                    <option value="Hostel & Mess">Hostel & Mess</option>
+                    <option value="Blood Donation & Health">Blood Donation & Health</option>
+                    <option value="General Notice">General Campus Notice</option>
                   </select>
                 </div>
                 <div>
@@ -405,30 +444,67 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
                   <select
                     value={newNoticePriority}
                     onChange={e => setNewNoticePriority(e.target.value as any)}
-                    className="w-full p-2.5 border border-slate-300 rounded-xl font-bold"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer"
                   >
                     <option value="Normal">Normal Priority</option>
-                    <option value="High">High Priority</option>
                     <option value="Medium">Medium Priority</option>
+                    <option value="High">⚡ High Priority</option>
                   </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-700 font-bold mb-1">Notice Content</label>
+                <label className="block text-slate-700 font-bold mb-1">
+                  Description / Details <span className="text-rose-500">*</span>
+                </label>
                 <textarea
                   value={newNoticeContent}
                   onChange={e => setNewNoticeContent(e.target.value)}
                   required
-                  rows={5}
-                  placeholder="Type the full directive or announcement text here..."
-                  className="w-full p-2.5 border border-slate-300 rounded-xl"
+                  rows={4}
+                  placeholder="Provide the complete notice message, instructions, timings, or directives here..."
+                  className="w-full p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none leading-relaxed"
                 />
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex justify-end space-x-2">
-                <button type="button" onClick={() => setShowCreateNoticeModal(false)} className="px-4 py-2 rounded-xl bg-slate-100 font-bold">Cancel</button>
-                <button type="submit" className="px-5 py-2 rounded-xl bg-indigo-600 text-white font-bold shadow-md">Publish Notice</button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-slate-600 font-semibold mb-1 text-[11px]">Author / Posted By (Optional)</label>
+                  <input
+                    type="text"
+                    value={newNoticeAuthor}
+                    onChange={e => setNewNoticeAuthor(e.target.value)}
+                    placeholder="e.g. Student Council / Dept Office"
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-600 font-semibold mb-1 text-[11px]">Department (Optional)</label>
+                  <input
+                    type="text"
+                    value={newNoticeDept}
+                    onChange={e => setNewNoticeDept(e.target.value)}
+                    placeholder="e.g. All Departments / Yarn Mfg"
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end space-x-2">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateNoticeModal(false)} 
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex items-center space-x-1.5 px-5 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Publish Notice</span>
+                </button>
               </div>
             </form>
           </div>
@@ -437,8 +513,8 @@ export const NoticeAndEventsBoard: React.FC<NoticeAndEventsBoardProps> = ({
 
       {/* CREATE EVENT MODAL */}
       {showCreateEventModal && (
-        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-slate-200 max-w-lg w-full p-6 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 max-w-lg w-full p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center pb-3 border-b border-slate-100">
               <h3 className="font-bold text-slate-900 text-sm">Schedule Academic Event</h3>
               <button onClick={() => setShowCreateEventModal(false)} className="text-slate-400 font-bold">✕</button>

@@ -1,0 +1,12 @@
+{
+  "version": "1.1.0",
+  "releaseDate": "2026-08-13",
+  "forceUpdate": false,
+  "downloadUrl": "https://rti-app-brown.vercel.app/",
+  "notes": [
+    "Added In-App Update Checker with version verification modal",
+    "Security PIN protection for Main Admin privileges",
+    "Enhanced role-based access control and live gate logs"
+  ],
+  "minSupportedVersion": "1.0.0"
+}
