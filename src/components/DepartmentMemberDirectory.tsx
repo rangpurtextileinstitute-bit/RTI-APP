@@ -65,6 +65,7 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
   const [filterRole, setFilterRole] = useState<'ALL' | 'Student' | 'Faculty'>(initialRoleFilter);
   const [filterSession, setFilterSession] = useState<string>('ALL');
   const [filterStatus, setFilterStatus] = useState<'ALL' | 'Active' | 'Graduated'>('ALL');
+  const [filterStudentStatus, setFilterStudentStatus] = useState<'ALL' | 'Running Student' | 'Ex-Student (Alumni)'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   
   // Selected Profile Modal State
@@ -313,6 +314,8 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
       (filterStatus === 'Active' && !isGraduated) || 
       (filterStatus === 'Graduated' && isGraduated);
 
+    const matchesStudentStatus = filterStudentStatus === 'ALL' || (m.studentStatus || 'Running Student') === filterStudentStatus;
+
     const q = searchQuery.toLowerCase();
     const matchesSearch = !q || 
       m.name.toLowerCase().includes(q) || 
@@ -323,7 +326,7 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
       (m.bloodGroup && m.bloodGroup.toLowerCase().includes(q)) ||
       (m.guardianName && m.guardianName.toLowerCase().includes(q));
 
-    return matchesRole && matchesSession && matchesStatus && matchesSearch;
+    return matchesRole && matchesSession && matchesStatus && matchesStudentStatus && matchesSearch;
   });
 
   const handleExportCSV = () => {
@@ -491,6 +494,25 @@ export const DepartmentMemberDirectory: React.FC<DepartmentMemberDirectoryProps>
               Teachers
             </button>
           </div>
+
+          {/* Student Status Filter */}
+          {filterRole === 'Student' && (
+            <div className="flex items-center space-x-1 bg-white p-1 rounded-xl border border-slate-200 shadow-xs">
+              {['ALL', 'Running Student', 'Ex-Student (Alumni)'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setFilterStudentStatus(status as any)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    filterStudentStatus === status
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Academic Session Filter */}
           <div className="flex items-center space-x-1.5 bg-white px-2.5 py-1.5 rounded-xl border border-slate-200 shadow-xs">

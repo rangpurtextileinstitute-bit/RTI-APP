@@ -19,6 +19,7 @@ export const MemberRegisterModal: React.FC<MemberRegisterModalProps> = ({
   const [batchOrDesignation, setBatchOrDesignation] = useState('Batch 52 (Textile Engineering)');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('+880 1700-123456');
+  const [studentStatus, setStudentStatus] = useState<RegisteredMember['studentStatus']>('Running Student');
   const [photoUrl, setPhotoUrl] = useState('');
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,7 +61,8 @@ export const MemberRegisterModal: React.FC<MemberRegisterModalProps> = ({
       photoUrl,
       qrCodeData: `RTI:MEMBER:${rollOrEmpId}:${name.replace(/\s+/g, '')}:${role}:${staffCategory || 'General'}`,
       accessStatus: 'Active',
-      lastSeen: 'Just Registered'
+      lastSeen: 'Just Registered',
+      studentStatus
     };
     onRegister(newMember);
     onClose();
@@ -102,6 +104,20 @@ export const MemberRegisterModal: React.FC<MemberRegisterModalProps> = ({
                 className="w-full p-2.5 bg-slate-950 border border-slate-700 text-white rounded-xl font-mono text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
               />
             </div>
+            <div>
+              <label className="block text-white font-bold mb-1">Student Status *</label>
+              <select
+                value={studentStatus}
+                onChange={e => setStudentStatus(e.target.value as any)}
+                className="w-full p-2.5 bg-slate-950 border border-slate-700 text-white font-bold rounded-xl text-xs focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              >
+                <option value="Running Student">Running Student</option>
+                <option value="Ex-Student (Alumni)">Ex-Student (Alumni)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-white font-bold mb-1">System Role *</label>
               <select
