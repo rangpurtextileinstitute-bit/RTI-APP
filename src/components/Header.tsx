@@ -18,6 +18,8 @@ import {
   Building,
   UserCheck,
   Video,
+  Calendar,
+  Bus,
   Home,
   Heart,
   Droplet,
@@ -484,6 +486,70 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Students Directory</span>
             </button>
 
+            {/* Tab 2.5: Alumni Directory */}
+            <button
+              onClick={() => {
+                setActiveTab('alumni_directory');
+                setMobileNavOpen(false);
+              }}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                activeTab === 'alumni_directory'
+                  ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-sky-600 text-white border-indigo-400 shadow-md shadow-indigo-600/30 ring-1 ring-white/20'
+                  : 'bg-slate-900 text-slate-200 hover:bg-slate-800 hover:text-white border-slate-700/80'
+              }`}
+            >
+              <GraduationCap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-300" />
+              <span>Alumni Directory</span>
+            </button>
+
+            {/* Routines & Syllabus */}
+            <button
+              onClick={() => {
+                setActiveTab('routines_syllabus');
+                setMobileNavOpen(false);
+              }}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                activeTab === 'routines_syllabus'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-900 text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-300" />
+              <span>Routines</span>
+            </button>
+
+            {/* Job & Internship Desk */}
+            <button
+              onClick={() => {
+                setActiveTab('placement_desk');
+                setMobileNavOpen(false);
+              }}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                activeTab === 'placement_desk'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-900 text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-300" />
+              <span>Jobs & Placement</span>
+            </button>
+
+            {/* Hostel & Transport */}
+            <button
+              onClick={() => {
+                setActiveTab('hostel_transport');
+                setMobileNavOpen(false);
+              }}
+              className={`flex items-center space-x-1.5 sm:space-x-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                activeTab === 'hostel_transport'
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-slate-900 text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <Bus className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-indigo-300" />
+              <span>Hostel & Transport</span>
+            </button>
+
             {/* Tab 3: Faculty Directory */}
             <button
               onClick={() => {
@@ -574,6 +640,16 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
               <span>Students Directory</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('alumni_directory');
+                setMobileNavOpen(false);
+              }}
+              className="flex items-center space-x-2 p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-800"
+            >
+              <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Alumni Directory</span>
             </button>
             <button
               onClick={() => {

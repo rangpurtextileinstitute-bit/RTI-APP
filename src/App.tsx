@@ -16,6 +16,10 @@ import { NoticeAndAttendanceHub } from './components/NoticeAndAttendanceHub';
 import { GuardianPortal } from './components/GuardianPortal';
 import { NoticeAndEventsBoard } from './components/NoticeAndEventsBoard';
 import { AuditLogView } from './components/AuditLogView';
+import { AlumniDirectory } from './components/AlumniDirectory';
+import { RoutinesAndSyllabus } from './components/RoutinesAndSyllabus';
+import { PlacementDesk } from './components/PlacementDesk';
+import { HostelAndTransport } from './components/HostelAndTransport';
 import { AlumniNetwork } from './components/AlumniNetwork';
 import { InstituteHub } from './components/InstituteHub';
 import { DepartmentMemberDirectory } from './components/DepartmentMemberDirectory';
@@ -999,6 +1003,24 @@ export default function App() {
             activeRole={activeRole}
             onAddMagazine={handleAddMagazine}
           />
+        )}
+
+        {activeTab === 'alumni_directory' && (
+          <AlumniDirectory
+            alumniList={alumniList}
+          />
+        )}
+
+        {activeTab === 'routines_syllabus' && (
+          <RoutinesAndSyllabus />
+        )}
+
+        {activeTab === 'placement_desk' && (
+          <PlacementDesk />
+        )}
+
+        {activeTab === 'hostel_transport' && (
+          <HostelAndTransport />
         )}
 
         {activeTab === 'alumni_network' && (
