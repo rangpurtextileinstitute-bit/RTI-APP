@@ -10,7 +10,19 @@ const firebaseConfig = {
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "385143212903"
 };
 
-const isConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== "your_api_key_here");
+let app = null;
+let db = null;
 
-export const app = isConfigured ? initializeApp(firebaseConfig) : null;
-export const db = isConfigured ? getFirestore(app, "ai-studio-niotron-cdf7a558-d5bb-482f-91f4-43b3144a74f4") : null;
+try {
+  const isConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== "your_api_key_here");
+  if (isConfigured) {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app, "ai-studio-niotron-cdf7a558-d5bb-482f-91f4-43b3144a74f4");
+  }
+} catch (e) {
+  console.error("Failed to initialize Firebase:", e);
+  app = null;
+  db = null;
+}
+
+export { app, db };
