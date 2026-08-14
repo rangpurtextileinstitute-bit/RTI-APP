@@ -49,7 +49,7 @@ export const GuardianPortal: React.FC<GuardianPortalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'bKash' | 'Credit Card' | 'Bank Transfer'>('bKash');
-  const [paymentSuccessReceipt, setPaymentSuccessReceipt] = useState<any | null>(null);
+  const [paymentSuccessReceipt, setPaymentSuccessReceipt] = useState<{receiptNo: string, studentName: string, amountPaid: number, paymentMethod: string, date: string} | null>(null);
 
   // Selected student resolution
   const selectedMember = members.find(m => m.rollOrEmpId === selectedStudentId) || students[0];

@@ -340,8 +340,8 @@ export const QRAttendanceGate: React.FC<QRAttendanceGateProps> = ({
       const personId = parts[1];
       const roleStr = parts[2] || 'Student';
       const dirStr = (parts[3] === 'OUT' ? 'OUT' : 'IN') as 'IN' | 'OUT';
-      const gateLoc = (parts[4] as any) || 'Main Gate 1';
-      const statusStr = (parts[5] as any) || 'GRANTED';
+      const gateLoc = (parts[4] as GateAccessLog['gateLocation']) || 'Main Gate 1';
+      const statusStr = (parts[5] as GateAccessLog['status']) || 'GRANTED';
 
       const log: GateAccessLog = {
         id: `gt-bulk-${Date.now()}-${idx}`,

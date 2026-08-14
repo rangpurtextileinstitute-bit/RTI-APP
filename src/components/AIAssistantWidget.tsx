@@ -31,7 +31,7 @@ interface AIAssistantWidgetProps {
   studentFees: StudentFeeStatus[];
   studentGrades: StudentGradeRecord[];
   onPublishNotice: (notice: NoticeRecord) => void;
-  onSendGuardianAlert?: (studentId: string, alertType: any, msg: string) => void;
+  onSendGuardianAlert?: (studentId: string, alertType: 'LATE_ARRIVAL' | 'FEE_REMINDER' | 'ATTENDANCE_WARNING' | 'EXAM_NOTICE' | 'CONSECUTIVE_ABSENCE', msg: string) => void;
   onClose?: () => void;
 }
 

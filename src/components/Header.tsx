@@ -45,7 +45,7 @@ interface HeaderProps {
   activeRole: string;
   setActiveRole: (role: string) => void;
   activeGateCount: number;
-  onRegisterMember?: (member: any) => void;
+  onRegisterMember?: (member: import('../types').RegisteredMember) => void;
   // Dynamic Admin & Auth Props
   designatedAdminEmail?: string;
   onUpdateAdminEmail?: (newEmail: string) => void;

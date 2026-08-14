@@ -755,7 +755,7 @@ export default function App() {
     addAuditEntry('Fee Dues Cleared Online', `Student ${studentId} paid ৳${amount} BDT via Guardian Gateway.`, 'Accounts');
   };
 
-  const handleSendGuardianAlert = (studentId: string, alertType: any, msg: string) => {
+  const handleSendGuardianAlert = (studentId: string, alertType: GuardianAlert['alertType'], msg: string) => {
     const student = registeredMembers.find(m => m.rollOrEmpId === studentId);
     const newAlert: GuardianAlert = {
       id: `alt-${Date.now()}`,

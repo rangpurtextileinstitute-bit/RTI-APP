@@ -114,7 +114,7 @@ export const UpdateCheckerModal: React.FC<UpdateCheckerModalProps> = ({
       } else if (isManual) {
         setShowModal(true);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.warn('Version check notice:', err?.message || err);
       if (isManual) {
         setErrorMsg('Unable to retrieve version information. Running version v' + CURRENT_APP_VERSION);
