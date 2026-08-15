@@ -11,13 +11,25 @@ export const safeLocalStorageGet = <T,>(key: string, defaultValue: T): T => {
 };
 
 export const safeStringify = (obj: any): string => {
-  const cache = new Set();
+  const seen = new WeakSet();
   return JSON.stringify(obj, (key, value) => {
-    if (typeof value === 'object' && value !== null) {
-      if (cache.has(value)) {
-        return; // Discard circular reference
+    if (typeof value === 'function' || typeof value === 'symbol') {
+      return undefined;
+    }
+    if (value && typeof value === 'object') {
+      if (
+        (typeof HTMLElement !== 'undefined' && value instanceof HTMLElement) ||
+        (typeof Window !== 'undefined' && value instanceof Window) ||
+        value === window ||
+        value.nativeEvent ||
+        value._reactName
+      ) {
+        return undefined;
       }
-      cache.add(value);
+      if (seen.has(value)) {
+        return undefined; // Circular reference detected
+      }
+      seen.add(value);
     }
     return value;
   });

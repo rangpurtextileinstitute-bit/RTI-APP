@@ -83,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   // Google Auth & Admin Verification State (Default: false - hidden until user clicks Sign In)
   const [showGoogleModal, setShowGoogleModal] = React.useState(false);
-  const [googleEmail, setGoogleEmail] = React.useState(currentUser?.email || designatedAdminEmail || '');
+  const [googleEmail, setGoogleEmail] = React.useState('');
   const [adminPinInput, setAdminPinInput] = React.useState('');
   const [newAdminEmailInput, setNewAdminEmailInput] = React.useState('');
   const [newAdminPinSetting, setNewAdminPinSetting] = React.useState('');
@@ -93,15 +93,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [setupEmailInput, setSetupEmailInput] = React.useState('');
   const [setupPinInput, setSetupPinInput] = React.useState('');
   const [setupPinConfirmInput, setSetupPinConfirmInput] = React.useState('');
-
-  // Sync googleEmail when currentUser or designatedAdminEmail changes
-  React.useEffect(() => {
-    if (currentUser?.email) {
-      setGoogleEmail(currentUser.email);
-    } else if (designatedAdminEmail) {
-      setGoogleEmail(designatedAdminEmail);
-    }
-  }, [currentUser?.email, designatedAdminEmail]);
 
   // Auth Toast Notification State
   const [authNotification, setAuthNotification] = React.useState<{ type: 'SUCCESS' | 'WARNING' | 'INFO'; msg: string } | null>(null);
@@ -742,24 +733,8 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            <div className="p-3.5 bg-purple-950/60 border border-purple-500/40 rounded-2xl text-purple-200 space-y-1.5 text-xs">
-              <div className="font-bold text-white flex items-center justify-between">
-                <span className="flex items-center space-x-1.5">
-                  <ShieldCheck className="w-4 h-4 text-purple-400" />
-                  <span>Main Admin Account Status</span>
-                </span>
-                <span className="font-mono text-[11px] text-amber-300 bg-slate-950 px-2 py-0.5 rounded border border-amber-500/30 font-bold">
-                  {designatedAdminEmail || 'Not Configured (Setup Required)'}
-                </span>
-              </div>
-              <p className="text-[11px] text-purple-200/90 leading-relaxed">
-                {designatedAdminEmail
-                  ? `Only ${designatedAdminEmail} with valid Admin Password can access Master Controls.`
-                  : 'No Main Admin has been set up yet. Use the setup form below to configure the Main Admin Gmail and Password.'}
-              </p>
-            </div>
-
-            {(!designatedAdminEmail || isSetupMode) ? (
+            <div className="space-y-4 text-xs">
+              {(!designatedAdminEmail || isSetupMode) ? (
               <form onSubmit={handleSaveAdminSetup} className="space-y-4 text-xs">
                 <div className="p-3 bg-indigo-950/50 border border-indigo-500/40 rounded-2xl space-y-1 text-indigo-200">
                   <h4 className="font-extrabold text-white text-xs flex items-center space-x-1.5">
@@ -770,7 +745,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-slate-200 font-bold mb-1">New Main Admin Gmail Address *</label>
+                  <label className="block text-slate-200 font-bold mb-1">Email Address *</label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
                     <input
@@ -778,7 +753,7 @@ export const Header: React.FC<HeaderProps> = ({
                       required
                       value={setupEmailInput}
                       onChange={(e) => setSetupEmailInput(e.target.value)}
-                      placeholder="e.g. admin.rti@gmail.com"
+                      placeholder="Enter email address"
                       className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder:text-slate-500"
                     />
                   </div>
@@ -786,13 +761,13 @@ export const Header: React.FC<HeaderProps> = ({
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-amber-200 font-bold mb-1">Admin Password *</label>
+                    <label className="block text-amber-200 font-bold mb-1">Password *</label>
                     <input
                       type="password"
                       required
                       value={setupPinInput}
                       onChange={(e) => setSetupPinInput(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Enter password"
                       className="w-full px-3 py-2.5 bg-slate-950 border border-amber-500/50 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-500"
                     />
                   </div>
@@ -803,7 +778,7 @@ export const Header: React.FC<HeaderProps> = ({
                       required
                       value={setupPinConfirmInput}
                       onChange={(e) => setSetupPinConfirmInput(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Confirm password"
                       className="w-full px-3 py-2.5 bg-slate-950 border border-amber-500/50 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-500"
                     />
                   </div>
@@ -833,7 +808,7 @@ export const Header: React.FC<HeaderProps> = ({
               <form onSubmit={handleSignInAsUser} className="space-y-4 text-xs">
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-slate-200 font-bold">Official Main Admin Gmail Address *</label>
+                    <label className="text-slate-200 font-bold">Email Address *</label>
                     <button
                       type="button"
                       onClick={() => setIsSetupMode(true)}
@@ -849,7 +824,7 @@ export const Header: React.FC<HeaderProps> = ({
                       required
                       value={googleEmail}
                       onChange={(e) => setGoogleEmail(e.target.value)}
-                      placeholder={designatedAdminEmail}
+                      placeholder="Enter email address"
                       className="w-full pl-10 pr-3 py-3 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-purple-500 focus:outline-none placeholder:text-slate-500"
                     />
                   </div>
@@ -859,7 +834,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <div className="flex items-center justify-between">
                     <label className="text-amber-200 font-bold flex items-center space-x-1.5">
                       <Lock className="w-4 h-4 text-amber-400" />
-                      <span>Admin Security Password *</span>
+                      <span>Password *</span>
                     </label>
                   </div>
                   <input
@@ -867,7 +842,7 @@ export const Header: React.FC<HeaderProps> = ({
                     required
                     value={adminPinInput}
                     onChange={(e) => setAdminPinInput(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="Enter password"
                     className="w-full px-3 py-2.5 bg-slate-950 border border-amber-500/50 rounded-xl text-white font-mono font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none placeholder:text-slate-500"
                   />
                 </div>
@@ -939,6 +914,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             )}
           </div>
+        </div>
         </div>
       )}
 
