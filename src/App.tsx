@@ -77,17 +77,15 @@ export default function App() {
 
   // Admin Security PIN State (Dynamic - defined by user during setup)
   const [adminSecurityPin, setAdminSecurityPin] = useState<string>('');
-const [currentUser, setCurrentUser] = useState<any>(() => {
-  return safeLocalStorageGet('rti_current_user', {
-    email: null,
-    name: 'Guest Visitor',
-    role: 'Student',
-    isLoggedIn: false,
+    const [currentUser, setCurrentUser] = useState<any>(() => {
+    return safeLocalStorageGet('rti_current_user', {
+      email: null,
+      name: 'Guest Visitor',
+      role: 'Student',
+      isLoggedIn: false,
+    });
   });
-});
 
-    isLoggedIn: false
-  });
 
   // Role-Based Access Control (Default: Student)
   const [activeRole, setActiveRole] = useState<string>(() => {
