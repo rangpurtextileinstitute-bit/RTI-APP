@@ -86,18 +86,16 @@ if (typeof window !== 'undefined' && localStorage.getItem('rti_data_version') !=
 }
 
 export default function App() {
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
   // Master Admin switch state (Default: false for unauthenticated visitors)
-  const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(() => safeLocalStorageGet('rti_master_admin', false));
+  const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(false);
 
   // Designated Single Main Admin Email State (Default: MAIN_ADMIN_EMAIL)
-  const [designatedAdminEmail, setDesignatedAdminEmail] = useState<string>(() => {
-    return (typeof window !== 'undefined' && localStorage.getItem('rti_designated_admin_email')) || MAIN_ADMIN_EMAIL;
-  });
+  const [designatedAdminEmail, setDesignatedAdminEmail] = useState<string>(MAIN_ADMIN_EMAIL);
 
   // Admin Security PIN State (Dynamic - defined by user during setup)
-  const [adminSecurityPin, setAdminSecurityPin] = useState<string>(() => {
-    return (typeof window !== 'undefined' && localStorage.getItem('rti_admin_pin')) || '';
-  });
+  const [adminSecurityPin, setAdminSecurityPin] = useState<string>('');
 
   // Current Logged-in User State (Default: Unauthenticated Guest Visitor)
   const [currentUser, setCurrentUser] = useState<{
@@ -105,21 +103,44 @@ export default function App() {
     name: string;
     role: string;
     isLoggedIn: boolean;
-  }>(() => safeLocalStorageGet('rti_current_user', {
+  }>({
     email: null,
     name: 'Guest Visitor',
     role: 'Student',
     isLoggedIn: false
-  }));
+  });
 
   // Role-Based Access Control (Default: Student)
-  const [activeRole, setActiveRole] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'Student';
-    const saved = localStorage.getItem('rti_active_role');
-    if (saved) return saved;
-    const isSavedAdmin = localStorage.getItem('rti_master_admin');
-    return isSavedAdmin && JSON.parse(isSavedAdmin) ? 'Super Admin' : 'Student';
-  });
+  const [activeRole, setActiveRole] = useState<string>('Student');
+
+  // Initial session verification on app mount to prevent auth state loss on refresh
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        if (typeof window !== 'undefined') {
+          const token = localStorage.getItem('authToken');
+          const savedUser = safeLocalStorageGet('rti_current_user', null);
+          const savedAdmin = safeLocalStorageGet('rti_master_admin', false);
+          const savedRole = localStorage.getItem('rti_active_role');
+          const savedAdminEmail = localStorage.getItem('rti_designated_admin_email');
+          const savedPin = localStorage.getItem('rti_admin_pin');
+
+          if (token && savedUser && savedUser.isLoggedIn) {
+            setCurrentUser(savedUser);
+            setIsMasterAdmin(Boolean(savedAdmin));
+            if (savedRole) setActiveRole(savedRole);
+          }
+          if (savedAdminEmail) setDesignatedAdminEmail(savedAdminEmail);
+          if (savedPin) setAdminSecurityPin(savedPin);
+        }
+      } catch (e) {
+        console.error('Error verifying session:', e);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
 
@@ -437,6 +458,7 @@ export default function App() {
     safeLocalStorageSet('rti_master_admin', true);
     safeLocalStorageSet('rti_current_user', adminUser);
     safeLocalStorageSet('rti_active_role', 'Super Admin');
+    localStorage.setItem('authToken', 'rti_session_token_' + Date.now());
 
     addAuditEntry('Main Admin Credentials Set', `Configured Main Admin account for ${cleanEmail}`, 'Security Administration');
     return { success: true, message: `✅ Main Admin configured! Logged in as ${cleanEmail}.` };
@@ -492,6 +514,7 @@ export default function App() {
       safeLocalStorageSet('rti_master_admin', true);
       safeLocalStorageSet('rti_current_user', adminUser);
       safeLocalStorageSet('rti_active_role', 'Super Admin');
+      localStorage.setItem('authToken', 'rti_session_token_' + Date.now());
 
       addAuditEntry('Admin Login Successful', `${cleanEmail} authenticated as Main Admin.`, 'Security Administration');
       return { success: true, message: `✅ Security verification successful! Logged in as Main Admin.` };
@@ -520,6 +543,7 @@ export default function App() {
       safeLocalStorageSet('rti_master_admin', false);
       safeLocalStorageSet('rti_current_user', studentUser);
       safeLocalStorageSet('rti_active_role', 'Student');
+      localStorage.setItem('authToken', 'rti_session_token_' + Date.now());
 
       addAuditEntry('Student Login', `Signed in as student ${cleanEmail}`, 'User Portal');
       return { success: true, message: `Welcome ${userName}! Signed in as Student.` };
@@ -539,6 +563,7 @@ export default function App() {
     safeLocalStorageSet('rti_master_admin', false);
     safeLocalStorageSet('rti_current_user', guestUser);
     safeLocalStorageSet('rti_active_role', 'Student');
+    localStorage.removeItem('authToken');
     addAuditEntry('User Logout', 'User logged out. Switched to Guest / Student mode.', 'User Portal');
   };
 
@@ -828,6 +853,15 @@ export default function App() {
   };
 
   const activeGateCount = gateLogs.filter(l => l.direction === 'IN' && l.status === 'GRANTED').length;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white space-y-4">
+        <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-slate-400 font-medium text-sm animate-pulse">Restoring RTI Session...</p>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'} flex flex-col font-sans selection:bg-indigo-500 selection:text-white transition-colors duration-200`}>

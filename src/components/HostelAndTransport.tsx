@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bus, Home, Info, Plus, Trash2, Edit2, Check, X, Shield, Users, BedDouble } from 'lucide-react';
 import { HostelAllocation, HostelRoom, HostelFloor } from '../types';
+import { safeLocalStorageSet } from '../lib/storage';
 
 interface HostelAndTransportProps {
   isMasterAdmin: boolean;
@@ -81,7 +82,7 @@ export const HostelAndTransport: React.FC<HostelAndTransportProps> = ({ isMaster
 
   const saveAllocations = (updated: HostelAllocation[]) => {
     setAllocations(updated);
-    localStorage.setItem('rti_hostel_allocations', JSON.stringify(updated));
+    safeLocalStorageSet('rti_hostel_allocations', updated);
   };
 
   const handleStartEdit = (hostelId: string, floorNum: number, roomIndex: number, room: HostelRoom) => {

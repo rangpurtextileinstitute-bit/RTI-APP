@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, BookOpen, Download, FileText, Upload, Edit2, Shield, Check, X, Eye, FileUp, Sparkles, RefreshCw, AlertCircle } from 'lucide-react';
+import { safeLocalStorageSet } from '../lib/storage';
 
 interface MaterialItem {
   title: string;
@@ -201,11 +202,7 @@ export const RoutinesAndSyllabus: React.FC<RoutinesAndSyllabusProps> = ({ isMast
 
   const saveSemesters = (updated: SemesterMaterial[]) => {
     setSemesters(updated);
-    try {
-      localStorage.setItem('rti_routines_syllabus_v1', JSON.stringify(updated));
-    } catch (e) {
-      console.error('Failed to save routines and syllabus:', e);
-    }
+    safeLocalStorageSet('rti_routines_syllabus_v1', updated);
   };
 
   const handleOpenEditModal = (semesterId: number, type: 'routine' | 'syllabus') => {
