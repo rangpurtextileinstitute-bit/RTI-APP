@@ -46,28 +46,7 @@ import {
   StudentGradeRecord,
   GuardianAlert,
   AlumniRecord,
-  RedCrescentMember,
-  InstituteMagazine,
-  TeacherLateAlert,
-  ConsecutiveAbsenceRecord,
-  CURRENT_APP_VERSION,
-  MAIN_ADMIN_EMAIL
-} from './types';
-
-import {
-  INITIAL_WET_PROCESSING_BATCHES,
-  INITIAL_LAB_DIPS,
-  INITIAL_YARN_RECORDS,
-  INITIAL_FIBER_BALES,
-  INITIAL_LOOM_RECORDS,
-  INITIAL_FABRIC_INSPECTIONS,
-  INITIAL_SEWING_RECORDS,
-  INITIAL_TECH_PACKS,
-  REGISTERED_MEMBERS,
-  INITIAL_GATE_LOGS,
-  INITIAL_AUDIT_LOGS,
-  INITIAL_NOTICES,
-  INITIAL_EVENTS,
+  
   INITIAL_STUDENT_FEES,
   INITIAL_STUDENT_GRADES,
   INITIAL_GUARDIAN_ALERTS,
@@ -89,29 +68,31 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Master Admin switch state (Default: false for unauthenticated visitors)
-  const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(false);
+  const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(() => {
+  return safeLocalStorageGet('rti_master_admin', false);
+});
 
   // Designated Single Main Admin Email State (Default: MAIN_ADMIN_EMAIL)
   const [designatedAdminEmail, setDesignatedAdminEmail] = useState<string>(MAIN_ADMIN_EMAIL);
 
   // Admin Security PIN State (Dynamic - defined by user during setup)
   const [adminSecurityPin, setAdminSecurityPin] = useState<string>('');
-
-  // Current Logged-in User State (Default: Unauthenticated Guest Visitor)
-  const [currentUser, setCurrentUser] = useState<{
-    email: string | null;
-    name: string;
-    role: string;
-    isLoggedIn: boolean;
-  }>({
+const [currentUser, setCurrentUser] = useState<any>(() => {
+  return safeLocalStorageGet('rti_current_user', {
     email: null,
     name: 'Guest Visitor',
     role: 'Student',
+    isLoggedIn: false,
+  });
+});
+
     isLoggedIn: false
   });
 
   // Role-Based Access Control (Default: Student)
-  const [activeRole, setActiveRole] = useState<string>('Student');
+  const [activeRole, setActiveRole] = useState<string>(() => {
+  return safeLocalStorageGet('rti_active_role', 'Student');
+});
 
   // Initial session restoration on app mount to prevent auth state loss on refresh
   useEffect(() => {
