@@ -10,29 +10,66 @@ export const safeLocalStorageGet = <T,>(key: string, defaultValue: T): T => {
   }
 };
 
-export const safeStringify = (obj: any): string => {
-  const seen = new WeakSet();
-  return JSON.stringify(obj, (key, value) => {
-    if (typeof value === 'function' || typeof value === 'symbol') {
+export const sanitizeValue = (value: any, seen = new WeakSet()): any => {
+  if (value === null || value === undefined) return value;
+  const type = typeof value;
+  if (type === 'string' || type === 'number' || type === 'boolean') {
+    return value;
+  }
+  if (type === 'function' || type === 'symbol') {
+    return undefined;
+  }
+  if (type === 'object') {
+    // Check for React elements, VDOM, or Fiber nodes
+    if (
+      value.$$typeof ||
+      value._reactName ||
+      value.nativeEvent ||
+      (typeof HTMLElement !== 'undefined' && value instanceof HTMLElement) ||
+      (typeof Window !== 'undefined' && value instanceof Window) ||
+      value === window ||
+      value.stateNode ||
+      value.return ||
+      value.child ||
+      value.sibling ||
+      value._owner
+    ) {
       return undefined;
     }
-    if (value && typeof value === 'object') {
-      if (
-        (typeof HTMLElement !== 'undefined' && value instanceof HTMLElement) ||
-        (typeof Window !== 'undefined' && value instanceof Window) ||
-        value === window ||
-        value.nativeEvent ||
-        value._reactName
-      ) {
-        return undefined;
-      }
-      if (seen.has(value)) {
-        return undefined; // Circular reference detected
-      }
-      seen.add(value);
+
+    if (seen.has(value)) {
+      return undefined; // Circular reference
     }
-    return value;
-  });
+    seen.add(value);
+
+    if (Array.isArray(value)) {
+      return value.map(item => sanitizeValue(item, seen));
+    }
+
+    // Plain object or class instance
+    const sanitized: Record<string, any> = {};
+    for (const key of Object.keys(value)) {
+      if (key.startsWith('__react') || key === '_owner' || key === 'ref' || key === 'key') {
+        continue;
+      }
+      const cleaned = sanitizeValue(value[key], seen);
+      if (cleaned !== undefined) {
+        sanitized[key] = cleaned;
+      }
+    }
+    return sanitized;
+  }
+  return undefined;
+};
+
+export const safeStringify = (obj: any): string => {
+  try {
+    const sanitized = sanitizeValue(obj);
+    return JSON.stringify(sanitized);
+  } catch (err) {
+    console.error('Error in safeStringify:', err);
+    return '{}';
+  }
 };
 
 export const safeLocalStorageSet = (key: string, value: any): void => {
