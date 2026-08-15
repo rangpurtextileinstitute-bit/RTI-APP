@@ -75,21 +75,17 @@ import {
   INITIAL_RED_CRESCENT_MEMBERS,
   INITIAL_MAGAZINES,
   INITIAL_TEACHER_LATE_ALERTS,
-  INITIAL_CONSECUTIVE_ABSENCES
+  } from './data/initialData';
 } from './data/initialData';
 
-// Force clear old mock data from previous sessions
-const DATA_VERSION_KEY = 'rti_clean_slate_zero_records_v50';
-if (typeof window !== 'undefined' && localStorage.getItem('rti_data_version') !== DATA_VERSION_KEY) {
-  localStorage.clear();
-  safeLocalStorageSet('rti_data_version', DATA_VERSION_KEY);
-}
-
+// Role-Based Access Control (Default: Student)
 export default function App() {
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Master Admin switch state (Default: false for unauthenticated visitors)
-  const [isMasterAdmin, setIsMasterAdmin] = useState<boolean>(false);
+
+// Role-Based Access Control (Default: Student)
+export default function App() {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Designated Single Main Admin Email State (Default: MAIN_ADMIN_EMAIL)
   const [designatedAdminEmail, setDesignatedAdminEmail] = useState<string>(MAIN_ADMIN_EMAIL);
